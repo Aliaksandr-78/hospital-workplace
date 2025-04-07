@@ -1,0 +1,58 @@
+@import "./tailwind.css";
+
+/* ========== Глобальные стили проекта ========== */
+
+/* Убираем стандартные отступы и границы у всех элементов */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Настройка шрифтов */
+html {
+  font-family: 'Inter', sans-serif;
+  scroll-behavior: smooth;
+}
+
+/* Базовые стили для body */
+body {
+  background-color: #f9fafb; /* Светлый фон */
+  color: #1f2937; /* Темный цвет текста */
+  line-height: 1.6;
+}
+
+/* Настройка контейнера для центрирования контента */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Скрытие скроллбара (опционально) */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+/* Глобальные классы для анимаций */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
