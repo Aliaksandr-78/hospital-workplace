@@ -5,6 +5,7 @@ import { getAllPatients } from "../../api/patientApi"
 import { getAllUsers } from "../../api/userApi"
 import Button from "../../components/Button"
 import Loader from "../../components/Loader"
+import Header from "../../components/Header"
 import Input from "../../components/Input"
 import Modal from "../../components/Modal"
 
@@ -56,7 +57,7 @@ const MedicalDischarges = () => {
     e.preventDefault()
     try {
       if (currentDischarge) {
-        await updateMedicalDischarge(currentDischarge.DischargeID, formData)
+        await updateMedicalDischarge(currentDischarge.dischargeid, formData)
       } else {
         await createMedicalDischarge(formData)
       }
@@ -72,10 +73,10 @@ const MedicalDischarges = () => {
       const discharge = await getMedicalDischargeById(dischargeID)
       setCurrentDischarge(discharge)
       setFormData({
-        PatientID: discharge.PatientID,
-        DoctorID: discharge.DoctorID,
-        DischargeDate: discharge.DischargeDate,
-        Summary: discharge.Summary,
+        PatientID: discharge.patientid,
+        DoctorID: discharge.doctorid,
+        DischargeDate: discharge.dischargedate.split('T')[0],
+        Summary: discharge.summary,
       })
       setIsModalOpen(true)
     } catch (error) {
@@ -104,114 +105,137 @@ const MedicalDischarges = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">Управление выписками</h1>
+    <div className="min-h-screen bg-gray-100">
+      <Header appName="Управление медицинскими выписками" />
 
-      <Button onClick={() => setIsModalOpen(true)} color="primary" className="mb-6">
-        Создать новую выписку
-      </Button>
+      <div className="container mx-auto p-4">
+        <h1 className="text-3xl font-bold mb-6 text-center">Управление медицинскими выписками</h1>
 
-      {loading ? (
-        <Loader />
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-200">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 border">Пациент</th>
-                <th className="px-4 py-2 border">Врач</th>
-                <th className="px-4 py-2 border">Дата выписки</th>
-                <th className="px-4 py-2 border">Заключение</th>
-                <th className="px-4 py-2 border">Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {medicalDischarges.map((discharge) => (
-                <tr key={discharge.DischargeID}>
-                  <td className="px-4 py-2 border">
-                    {patients.find((p) => p.PatientID === discharge.PatientID)?.LastName}{" "}
-                    {patients.find((p) => p.PatientID === discharge.PatientID)?.FirstName}
-                  </td>
-                  <td className="px-4 py-2 border">
-                    {doctors.find((d) => d.UserID === discharge.DoctorID)?.LastName}{" "}
-                    {doctors.find((d) => d.UserID === discharge.DoctorID)?.FirstName}
-                  </td>
-                  <td className="px-4 py-2 border">{discharge.DischargeDate}</td>
-                  <td className="px-4 py-2 border">{discharge.Summary}</td>
-                  <td className="px-4 py-2 border">
-                    <Button onClick={() => handleEdit(discharge.DischargeID)} color="secondary" className="mr-2">
-                      Редактировать
-                    </Button>
-                    <Button onClick={() => handleDelete(discharge.DischargeID)} color="danger">
-                      Удалить
-                    </Button>
-                  </td>
+        {loading ? (
+          <Loader className="flex justify-center my-8" />
+        ) : (
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="flex justify-end mb-4">
+              <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+                Создать новую выписку
+              </Button>
+            </div>
+
+            <table className="min-w-full bg-white">
+              <thead>
+                <tr>
+                  <th className="py-2 px-4 border-b">Пациент</th>
+                  <th className="py-2 px-4 border-b">Врач</th>
+                  <th className="py-2 px-4 border-b">Дата выписки</th>
+                  <th className="py-2 px-4 border-b">Заключение</th>
+                  <th className="py-2 px-4 border-b">Действия</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {medicalDischarges.map((discharge) => (
+                  <tr key={discharge.dischargeid} className="hover:bg-gray-50">
+                    <td className="py-2 px-4 border-b">
+                      {patients.find((p) => p.patientid === discharge.patientid)?.lastname}{" "}
+                      {patients.find((p) => p.patientid === discharge.patientid)?.firstname}{" "}
+                      {patients.find((p) => p.patientid === discharge.patientid)?.middlename}
+                    </td>
+                    <td className="py-2 px-4 border-b">
+                      {doctors.find((d) => d.userid === discharge.doctorid)?.lastname}{" "}
+                      {doctors.find((d) => d.userid === discharge.doctorid)?.firstname}{" "}
+                      {doctors.find((d) => d.userid === discharge.doctorid)?.middlename}
+                    </td>
+                    <td className="py-2 px-4 border-b">{new Date(discharge.dischargedate).toLocaleDateString()}</td>
+                    <td className="py-2 px-4 border-b">{discharge.summary}</td>
+                    <td className="py-2 px-4 border-b whitespace-nowrap">
+                      <div className="flex space-x-2">
+                        <Button 
+                          onClick={() => handleEdit(discharge.dischargeid)} 
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Редактировать
+                        </Button>
+                        <Button 
+                          onClick={() => handleDelete(discharge.dischargeid)} 
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Удалить
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      <Modal isOpen={isModalOpen} onClose={handleCancel}>
-        <h2 className="text-xl font-semibold mb-4">
-          {currentDischarge ? "Редактировать выписку" : "Создать новую выписку"}
-        </h2>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <Input
-              label="Пациент"
-              name="PatientID"
-              value={formData.PatientID}
-              onChange={handleInputChange}
-              type="select"
-            >
-              <option value="">Выберите пациента</option>
-              {patients.map((patient) => (
-                <option key={patient.PatientID} value={patient.PatientID}>
-                  {patient.LastName} {patient.FirstName}
-                </option>
-              ))}
-            </Input>
-            <Input
-              label="Врач"
-              name="DoctorID"
-              value={formData.DoctorID}
-              onChange={handleInputChange}
-              type="select"
-            >
-              <option value="">Выберите врача</option>
-              {doctors.map((doctor) => (
-                <option key={doctor.UserID} value={doctor.UserID}>
-                  {doctor.LastName} {doctor.FirstName}
-                </option>
-              ))}
-            </Input>
-            <Input
-              label="Дата выписки"
-              name="DischargeDate"
-              value={formData.DischargeDate}
-              onChange={handleInputChange}
-              type="date"
-            />
-            <Input
-              label="Заключение"
-              name="Summary"
-              value={formData.Summary}
-              onChange={handleInputChange}
-              type="text"
-            />
+        <Modal isOpen={isModalOpen} onClose={handleCancel}>
+          <div className="p-6">
+            <h2 className="text-xl font-semibold mb-4">
+              {currentDischarge ? "Редактировать выписку" : "Создать новую выписку"}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                label="Пациент"
+                name="PatientID"
+                value={formData.PatientID}
+                onChange={handleInputChange}
+                type="select"
+              >
+                <option value="">Выберите пациента</option>
+                {patients.map((patient) => (
+                  <option key={patient.patientid} value={patient.patientid}>
+                    {patient.lastname} {patient.firstname} {patient.middlename}
+                  </option>
+                ))}
+              </Input>
+              <Input
+                label="Врач"
+                name="DoctorID"
+                value={formData.DoctorID}
+                onChange={handleInputChange}
+                type="select"
+              >
+                <option value="">Выберите врача</option>
+                {doctors.map((doctor) => (
+                  <option key={doctor.userid} value={doctor.userid}>
+                    {doctor.lastname} {doctor.firstname} {doctor.middlename}
+                  </option>
+                ))}
+              </Input>
+              <Input
+                label="Дата выписки"
+                name="DischargeDate"
+                value={formData.DischargeDate}
+                onChange={handleInputChange}
+                type="date"
+              />
+              <Input
+                label="Заключение"
+                name="Summary"
+                value={formData.Summary}
+                onChange={handleInputChange}
+                type="text"
+              />
+              <div className="flex justify-end space-x-4">
+                <Button 
+                  type="button" 
+                  onClick={handleCancel} 
+                  className="bg-gray-600 hover:bg-gray-700"
+                >
+                  Отмена
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {currentDischarge ? "Сохранить" : "Создать"}
+                </Button>
+              </div>
+            </form>
           </div>
-          <div className="mt-6 flex justify-end space-x-4">
-            <Button type="button" onClick={handleCancel} color="secondary">
-              Отмена
-            </Button>
-            <Button type="submit" color="primary">
-              {currentDischarge ? "Сохранить" : "Создать"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        </Modal>
+      </div>
     </div>
   )
 }

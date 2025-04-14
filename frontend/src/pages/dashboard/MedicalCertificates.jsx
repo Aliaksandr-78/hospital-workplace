@@ -54,7 +54,7 @@ const MedicalCertificates = () => {
     e.preventDefault()
     try {
       if (currentCertificate) {
-        await updateMedicalCertificate(currentCertificate.CertificateID, formData)
+        await updateMedicalCertificate(currentCertificate.certificateid, formData)
       } else {
         await createMedicalCertificate(formData)
       }
