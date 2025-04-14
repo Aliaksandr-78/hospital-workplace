@@ -43,21 +43,6 @@ export const getMedicalRecordById = async (recordID) => {
 
 /**
  * @param {string} recordID - ID карты.
- * @param {Object} updatedData - Обновленные данные.
- * @returns {Promise<Object>} - Обновленная карта.
- */
-export const updateMedicalRecord = async (recordID, updatedData) => {
-  try {
-    const response = await api.put(`medical-records/medicalRecordUpdate/${recordID}`, updatedData)
-    return response.data
-  } catch (error) {
-    console.error(`Ошибка при обновлении медицинской карты ID ${recordID}:`, error)
-    throw error
-  }
-}
-
-/**
- * @param {string} recordID - ID карты.
  * @returns {Promise<Object>} - Результат удаления.
  */
 export const deleteMedicalRecord = async (recordID) => {

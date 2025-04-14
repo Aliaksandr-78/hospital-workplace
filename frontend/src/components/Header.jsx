@@ -32,7 +32,8 @@ const Header = ({ appName }) => {
           { path: "/appointments", label: "Менеджер приемов"},
           { path: "/consent-forms", label: "Управление согласиями"},
           { path: "/medical-certificates", label: "Менеджер справок"},
-          { path: "/medical-discharges", label: "Управление выписками"}
+          { path: "/medical-discharges", label: "Управление выписками"},
+          { path: "/medical-records", label: "Управление медицинскими картами"}
         ]}  
       />
 

@@ -7,7 +7,6 @@ const morgan = require('morgan')
 const { pool } = require('./config/db')
 
 const appointmentRoutes = require('./routes/appointmentRoutes')
-const appointmentServiceRoutes = require('./routes/appointmentServiceRoutes')
 const consentFormRoutes = require('./routes/consentFormRoutes')
 const documentTemplateRoutes = require('./routes/documentTemplateRoutes')
 const labTestCatalogRoutes = require('./routes/labTestCatalogRoutes')
@@ -24,19 +23,20 @@ const specialtyRoutes = require('./routes/specialtyRoutes')
 const userRoleRoutes = require('./routes/userRoleRoutes')
 const userRoutes = require('./routes/userRoutes')
 const eventTypesRoutes = require('./routes/eventTypesRoutes')
+const medicalRecordEntryRoutes = require('./routes/medicalRecordEntryRoutes')
+const labTestResultController = require('./routes/labTestResultRoutes')
 
 const app = express()
 
 // Middleware
 app.use(cors({
-    origin: "http://localhost:5173", // Укажите адрес вашего фронтенда
+    origin: "http://localhost:5173",
     credentials: true, // Разрешить запросы с учётными данными
 }))
 app.use(bodyParser.json())
 app.use(morgan('dev'))
 
 app.use('/api/appointment', appointmentRoutes)
-app.use('/api/appointment-service', appointmentServiceRoutes)
 app.use('/api/consent-form', consentFormRoutes)
 app.use('/api/document-template', documentTemplateRoutes)
 app.use('/api/lab-test-catalog', labTestCatalogRoutes)
@@ -53,6 +53,8 @@ app.use('/api/specialty', specialtyRoutes)
 app.use('/api/user-role', userRoleRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/event-types', eventTypesRoutes)
+app.use('/api/medical-record-entry', medicalRecordEntryRoutes)
+app.use('/api/lab-test-result', labTestResultController)
 
 
 pool.connect()
