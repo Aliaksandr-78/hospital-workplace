@@ -70,11 +70,11 @@ const MedicalCertificates = () => {
       const certificate = await getMedicalCertificateById(certificateID)
       setCurrentCertificate(certificate)
       setFormData({
-        PatientID: certificate.PatientID,
-        IssuedBy: certificate.IssuedBy,
-        IssuedDate: certificate.IssuedDate,
-        CertificateType: certificate.CertificateType,
-        Details: certificate.Details,
+        PatientID: certificate.patientid,
+        IssuedBy: certificate.issuedby,
+        IssuedDate: certificate.issueddate.split('T')[0],
+        CertificateType: certificate.certificatetype,
+        Details: certificate.details,
       })
       setIsModalOpen(true)
     } catch (error) {
@@ -142,22 +142,24 @@ const MedicalCertificates = () => {
                     <td className="py-2 px-4 border-b">
                       {user?.lastname} {user?.firstname} {user?.middlename}
                     </td>
-                    <td className="py-2 px-4 border-b">{certificate.issueddate}</td>
+                    <td className="py-2 px-4 border-b">{new Date(certificate.issueddate).toLocaleDateString()}</td>
                     <td className="py-2 px-4 border-b">{certificate.certificatetype}</td>
                     <td className="py-2 px-4 border-b">{certificate.details}</td>
-                    <td className="py-2 px-4 border-b">
-                      <Button 
-                        onClick={() => handleEdit(certificate.certificateid)} 
-                        className="mr-2 bg-blue-600 hover:bg-blue-700"
-                      >
-                        Редактировать
-                      </Button>
-                      <Button 
-                        onClick={() => handleDelete(certificate.certificateid)} 
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Удалить
-                      </Button>
+                    <td className="py-2 px-4 border-b whitespace-nowrap">
+                      <div className="flex space-x-2">
+                        <Button 
+                          onClick={() => handleEdit(certificate.certificateid)} 
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Редактировать
+                        </Button>
+                        <Button 
+                          onClick={() => handleDelete(certificate.certificateid)} 
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Удалить
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -182,7 +184,7 @@ const MedicalCertificates = () => {
                 <option value="">Выберите пациента</option>
                 {patients.map((patient) => (
                   <option key={patient.patientid} value={patient.patientid}>
-                    {patient.lastname} {patient.firstname}
+                    {patient.lastname} {patient.firstname} {patient.middlename}
                   </option>
                 ))}
               </Input>
