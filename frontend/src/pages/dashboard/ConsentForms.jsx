@@ -1,19 +1,20 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "../../context/AuthContext"
-import { createConsentForm, getAllConsentForms, getConsentFormById, deleteConsentForm } from "../../api/consentFormApi"
+import { createConsentForm, getAllConsentForms, deleteConsentForm } from "../../api/consentFormApi"
 import { getAllPatients } from "../../api/patientApi"
 import Button from "../../components/Button"
+import Header from "../../components/Header"
 import Loader from "../../components/Loader"
 import Input from "../../components/Input"
 import Modal from "../../components/Modal"
 
 const ConsentForms = () => {
   const { user } = useAuth()
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [consentForms, setConsentForms] = useState([])
   const [patients, setPatients] = useState([])
+  const [error, setError] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [currentConsentForm, setCurrentConsentForm] = useState(null)
   const [formData, setFormData] = useState({
     PatientID: "",
     Procedure: "",
@@ -38,6 +39,7 @@ const ConsentForms = () => {
       setPatients(patientsData)
     } catch (error) {
       console.error("Ошибка при загрузке данных:", error)
+      setError("Не удалось загрузить данные. Пожалуйста, попробуйте позже.")
     } finally {
       setLoading(false)
     }
@@ -51,27 +53,18 @@ const ConsentForms = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-        await createConsentForm(formData)
+      if (!formData.PatientID || !formData.Procedure || !formData.Date) {
+        setError("Все обязательные поля должны быть заполнены")
+        return
+      }
+
+      await createConsentForm(formData)
       setIsModalOpen(false)
       fetchData()
+      setError("")
     } catch (error) {
       console.error("Ошибка при сохранении согласия:", error)
-    }
-  }
-
-  const handleEdit = async (consentFormID) => {
-    try {
-      const consentForm = await getConsentFormById(consentFormID)
-      setCurrentConsentForm(consentForm);
-      setFormData({
-        PatientID: consentForm.PatientID,
-        Procedure: consentForm.Procedure,
-        Date: consentForm.Date,
-        Details: consentForm.Details,
-      })
-      setIsModalOpen(true)
-    } catch (error) {
-      console.error("Ошибка при загрузке согласия:", error)
+      setError("Не удалось сохранить согласие. Пожалуйста, попробуйте позже.")
     }
   }
 
@@ -81,57 +74,70 @@ const ConsentForms = () => {
       fetchData()
     } catch (error) {
       console.error("Ошибка при удалении согласия:", error)
+      setError("Не удалось удалить согласие. Пожалуйста, попробуйте позже.")
     }
   }
 
   const handleCancel = () => {
     setIsModalOpen(false)
-    setCurrentConsentForm(null)
     setFormData({
       PatientID: "",
       Procedure: "",
       Date: "",
       Details: "",
     })
+    setError("")
   }
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">Управление согласиями</h1>
+    <div className="min-h-screen bg-gray-100">
+      <Header appName="Управление согласиями" />
 
-      <Button onClick={() => setIsModalOpen(true)} color="primary" className="mb-6">
-        Создать новое согласие
-      </Button>
+      <div className="container mx-auto p-4">
+        <h1 className="text-3xl font-bold mb-6 text-center">Управление согласиями</h1>
 
-      {loading ? (
-        <Loader />
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-200">
+        {loading && <Loader className="flex justify-center my-8" />}
+
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+
+        <div className="flex justify-end mb-4">
+          <Button 
+            onClick={() => setIsModalOpen(true)} 
+            className="bg-green-600 hover:bg-green-700"
+          >
+            Создать новое согласие
+          </Button>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <table className="min-w-full bg-white">
             <thead>
               <tr>
-                <th className="px-4 py-2 border">Пациент</th>
-                <th className="px-4 py-2 border">Процедура</th>
-                <th className="px-4 py-2 border">Дата</th>
-                <th className="px-4 py-2 border">Детали</th>
-                <th className="px-4 py-2 border">Действия</th>
+                <th className="py-2 px-4 border-b">Пациент</th>
+                <th className="py-2 px-4 border-b">Процедура</th>
+                <th className="py-2 px-4 border-b">Дата</th>
+                <th className="py-2 px-4 border-b">Детали</th>
+                <th className="py-2 px-4 border-b">Действия</th>
               </tr>
             </thead>
             <tbody>
               {consentForms.map((consentForm) => (
-                <tr key={consentForm.ConsentFormID}>
-                  <td className="px-4 py-2 border">
-                    {patients.find((p) => p.PatientID === consentForm.PatientID)?.LastName}{" "}
-                    {patients.find((p) => p.PatientID === consentForm.PatientID)?.FirstName}
+                <tr key={consentForm.ConsentFormID} className="hover:bg-gray-50">
+                  <td className="py-2 px-4 border-b">
+                    {patients.find((p) => p.patientid === consentForm.patientid)?.lastname}{" "}
+                    {patients.find((p) => p.patientid === consentForm.patientid)?.firstname}{" "}
+                    {patients.find((p) => p.patientid === consentForm.patientid)?.middlename}
                   </td>
-                  <td className="px-4 py-2 border">{consentForm.Procedure}</td>
-                  <td className="px-4 py-2 border">{consentForm.Date}</td>
-                  <td className="px-4 py-2 border">{consentForm.Details}</td>
-                  <td className="px-4 py-2 border">
-                    <Button onClick={() => handleEdit(consentForm.ConsentFormID)} color="secondary" className="mr-2">
-                      Редактировать
-                    </Button>
-                    <Button onClick={() => handleDelete(consentForm.ConsentFormID)} color="danger">
+                  <td className="py-2 px-4 border-b">{consentForm.procedure}</td>
+                  <td className="py-2 px-4 border-b">
+                    {new Date(consentForm.date).toLocaleDateString()}
+                  </td>
+                  <td className="py-2 px-4 border-b">{consentForm.details}</td>
+                  <td className="py-2 px-4 border-b">
+                    <Button
+                      onClick={() => handleDelete(consentForm.consentformid)}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
                       Удалить
                     </Button>
                   </td>
@@ -140,60 +146,65 @@ const ConsentForms = () => {
             </tbody>
           </table>
         </div>
-      )}
 
-      <Modal isOpen={isModalOpen} onClose={handleCancel}>
-        <h2 className="text-xl font-semibold mb-4">
-          {currentConsentForm ? "Редактировать согласие" : "Создать новое согласие"}
-        </h2>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <Input
-              label="Пациент"
-              name="PatientID"
-              value={formData.PatientID}
-              onChange={handleInputChange}
-              type="select"
-            >
-              <option value="">Выберите пациента</option>
-              {patients.map((patient) => (
-                <option key={patient.PatientID} value={patient.PatientID}>
-                  {patient.LastName} {patient.FirstName}
-                </option>
-              ))}
-            </Input>
-            <Input
-              label="Процедура"
-              name="Procedure"
-              value={formData.Procedure}
-              onChange={handleInputChange}
-              type="text"
-            />
-            <Input
-              label="Дата"
-              name="Date"
-              value={formData.Date}
-              onChange={handleInputChange}
-              type="date"
-            />
-            <Input
-              label="Детали"
-              name="Details"
-              value={formData.Details}
-              onChange={handleInputChange}
-              type="text"
-            />
+        <Modal isOpen={isModalOpen} onClose={handleCancel}>
+          <div className="p-6">
+            <h2 className="text-xl font-semibold mb-4">Создать новое согласие</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                label="Пациент"
+                name="PatientID"
+                value={formData.PatientID}
+                onChange={handleInputChange}
+                type="select"
+                required
+              >
+                <option value="">Выберите пациента</option>
+                {patients.map((patient) => (
+                  <option key={patient.patientid} value={patient.patientid}>
+                    {patient.lastname} {patient.firstname}
+                  </option>
+                ))}
+              </Input>
+              <Input
+                label="Процедура"
+                name="Procedure"
+                value={formData.Procedure}
+                onChange={handleInputChange}
+                type="text"
+                required
+              />
+              <Input
+                label="Дата"
+                name="Date"
+                value={formData.Date}
+                onChange={handleInputChange}
+                type="date"
+                required
+              />
+              <Input
+                label="Детали"
+                name="Details"
+                value={formData.Details}
+                onChange={handleInputChange}
+                type="text"
+              />
+              <div className="flex justify-end space-x-4">
+                <Button
+                  type="button"
+                  onClick={handleCancel}
+                  className="bg-gray-600 hover:bg-gray-700"
+                >
+                  Отмена
+                </Button>
+                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                  Создать
+                </Button>
+              </div>
+            </form>
           </div>
-          <div className="mt-6 flex justify-end space-x-4">
-            <Button type="button" onClick={handleCancel} color="secondary">
-              Отмена
-            </Button>
-            <Button type="submit" color="primary">
-              {currentConsentForm ? "Сохранить" : "Создать"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        </Modal>
+      </div>
     </div>
   )
 }

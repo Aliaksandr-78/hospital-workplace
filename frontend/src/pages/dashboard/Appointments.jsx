@@ -259,6 +259,8 @@ const Appointments = () => {
               <tbody>
                 {appointments.map((appointment) => {
                   const patient = patients.find((p) => p.patientid === appointment.patientid);
+                  console.log("Appointments:", appointments);
+                  console.log("Doctors (users):", doctors);
                   const doctor = doctors.find((d) => d.userid === appointment.doctorid);
 
                   return (

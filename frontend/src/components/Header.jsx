@@ -30,6 +30,8 @@ const Header = ({ appName }) => {
           { path: "/manage-eventtypes", label: "Менеджер типов событий"},
           { path: "/manage-schedules", label: "Менеджер расписания"},
           { path: "/appointments", label: "Менеджер приемов"},
+          { path: "/consent-forms", label: "Управление согласиями"},
+          { path: "/medical-certificates", label: "Менеджер справок"}
         ]}  
       />
 

@@ -104,108 +104,128 @@ const MedicalCertificates = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
+    <div className="min-h-screen bg-gray-100">
       <Header appName="Управление медицинскими справками" />
 
-      <Button onClick={() => setIsModalOpen(true)} color="primary" className="mb-6">
-        Создать новую справку
-      </Button>
+      <div className="container mx-auto p-4">
+        <h1 className="text-3xl font-bold mb-6 text-center">Управление медицинскими справками</h1>
 
-      {loading ? (
-        <Loader />
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-200">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 border">Пациент</th>
-                <th className="px-4 py-2 border">Выдано</th>
-                <th className="px-4 py-2 border">Дата выдачи</th>
-                <th className="px-4 py-2 border">Тип справки</th>
-                <th className="px-4 py-2 border">Детали</th>
-                <th className="px-4 py-2 border">Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {medicalCertificates.map((certificate) => (
-                <tr key={certificate.CertificateID}>
-                  <td className="px-4 py-2 border">
-                    {patients.find((p) => p.PatientID === certificate.PatientID)?.LastName}{" "}
-                    {patients.find((p) => p.PatientID === certificate.PatientID)?.FirstName}
-                  </td>
-                  <td className="px-4 py-2 border">
-                    {user?.LastName} {user?.FirstName}
-                  </td>
-                  <td className="px-4 py-2 border">{certificate.IssuedDate}</td>
-                  <td className="px-4 py-2 border">{certificate.CertificateType}</td>
-                  <td className="px-4 py-2 border">{certificate.Details}</td>
-                  <td className="px-4 py-2 border">
-                    <Button onClick={() => handleEdit(certificate.CertificateID)} color="secondary" className="mr-2">
-                      Редактировать
-                    </Button>
-                    <Button onClick={() => handleDelete(certificate.CertificateID)} color="danger">
-                      Удалить
-                    </Button>
-                  </td>
+        {loading ? (
+          <Loader className="flex justify-center my-8" />
+        ) : (
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="flex justify-end mb-4">
+              <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+                Создать новую справку
+              </Button>
+            </div>
+
+            <table className="min-w-full bg-white">
+              <thead>
+                <tr>
+                  <th className="py-2 px-4 border-b">Пациент</th>
+                  <th className="py-2 px-4 border-b">Выдано</th>
+                  <th className="py-2 px-4 border-b">Дата выдачи</th>
+                  <th className="py-2 px-4 border-b">Тип справки</th>
+                  <th className="py-2 px-4 border-b">Детали</th>
+                  <th className="py-2 px-4 border-b">Действия</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {medicalCertificates.map((certificate) => (
+                  <tr key={certificate.certificateid} className="hover:bg-gray-50">
+                    <td className="py-2 px-4 border-b">
+                      {patients.find((p) => p.patientid === certificate.patientid)?.lastname}{" "}
+                      {patients.find((p) => p.patientid === certificate.patientid)?.firstname}{" "}
+                      {patients.find((p) => p.patientid === certificate.patientid)?.middlename}
+                    </td>
+                    <td className="py-2 px-4 border-b">
+                      {user?.lastname} {user?.firstname} {user?.middlename}
+                    </td>
+                    <td className="py-2 px-4 border-b">{certificate.issueddate}</td>
+                    <td className="py-2 px-4 border-b">{certificate.certificatetype}</td>
+                    <td className="py-2 px-4 border-b">{certificate.details}</td>
+                    <td className="py-2 px-4 border-b">
+                      <Button 
+                        onClick={() => handleEdit(certificate.certificateid)} 
+                        className="mr-2 bg-blue-600 hover:bg-blue-700"
+                      >
+                        Редактировать
+                      </Button>
+                      <Button 
+                        onClick={() => handleDelete(certificate.certificateid)} 
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Удалить
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      <Modal isOpen={isModalOpen} onClose={handleCancel}>
-        <h2 className="text-xl font-semibold mb-4">
-          {currentCertificate ? "Редактировать справку" : "Создать новую справку"}
-        </h2>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <Input
-              label="Пациент"
-              name="PatientID"
-              value={formData.PatientID}
-              onChange={handleInputChange}
-              type="select"
-            >
-              <option value="">Выберите пациента</option>
-              {patients.map((patient) => (
-                <option key={patient.PatientID} value={patient.PatientID}>
-                  {patient.LastName} {patient.FirstName}
-                </option>
-              ))}
-            </Input>
-            <Input
-              label="Дата выдачи"
-              name="IssuedDate"
-              value={formData.IssuedDate}
-              onChange={handleInputChange}
-              type="date"
-            />
-            <Input
-              label="Тип справки"
-              name="CertificateType"
-              value={formData.CertificateType}
-              onChange={handleInputChange}
-              type="text"
-            />
-            <Input
-              label="Детали"
-              name="Details"
-              value={formData.Details}
-              onChange={handleInputChange}
-              type="text"
-            />
+        <Modal isOpen={isModalOpen} onClose={handleCancel}>
+          <div className="p-6">
+            <h2 className="text-xl font-semibold mb-4">
+              {currentCertificate ? "Редактировать справку" : "Создать новую справку"}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                label="Пациент"
+                name="PatientID"
+                value={formData.PatientID}
+                onChange={handleInputChange}
+                type="select"
+              >
+                <option value="">Выберите пациента</option>
+                {patients.map((patient) => (
+                  <option key={patient.patientid} value={patient.patientid}>
+                    {patient.lastname} {patient.firstname}
+                  </option>
+                ))}
+              </Input>
+              <Input
+                label="Дата выдачи"
+                name="IssuedDate"
+                value={formData.IssuedDate}
+                onChange={handleInputChange}
+                type="date"
+              />
+              <Input
+                label="Тип справки"
+                name="CertificateType"
+                value={formData.CertificateType}
+                onChange={handleInputChange}
+                type="text"
+              />
+              <Input
+                label="Детали"
+                name="Details"
+                value={formData.Details}
+                onChange={handleInputChange}
+                type="text"
+              />
+              <div className="flex justify-end space-x-4">
+                <Button 
+                  type="button" 
+                  onClick={handleCancel} 
+                  className="bg-gray-600 hover:bg-gray-700"
+                >
+                  Отмена
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {currentCertificate ? "Сохранить" : "Создать"}
+                </Button>
+              </div>
+            </form>
           </div>
-          <div className="mt-6 flex justify-end space-x-4">
-            <Button type="button" onClick={handleCancel} color="secondary">
-              Отмена
-            </Button>
-            <Button type="submit" color="primary">
-              {currentCertificate ? "Сохранить" : "Создать"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        </Modal>
+      </div>
     </div>
   )
 }
