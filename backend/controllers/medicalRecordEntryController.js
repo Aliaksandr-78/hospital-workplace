@@ -6,14 +6,14 @@ const medicalRecordEntryController = {
      */
     async create(req, res) {
         try {
-            const { recordID, doctorID, entryType, content } = req.body;
+            const { recordID, doctorID, entryType, content, diagnosisID } = req.body;
             const query = `
                 INSERT INTO MedicalRecordEntries 
-                (RecordID, DoctorID, EntryType, Content) 
-                VALUES ($1, $2, $3, $4) 
+                (RecordID, DoctorID, EntryType, Content, DiagnosisID) 
+                VALUES ($1, $2, $3, $4, $5) 
                 RETURNING *;
             `;
-            const values = [recordID, doctorID, entryType, content];
+            const values = [recordID, doctorID, entryType, content, diagnosisID];
             const result = await pool.query(query, values);
             res.status(201).json(result.rows[0]);
         } catch (error) {
@@ -28,7 +28,10 @@ const medicalRecordEntryController = {
         try {
             const { entryID } = req.params;
             const query = `
-                SELECT * FROM MedicalRecordEntries WHERE EntryID = $1;
+                SELECT m.*, d.Name as DiagnosisName
+                FROM MedicalRecordEntries m
+                LEFT JOIN Diagnoses d ON m.DiagnosisID = d.DiagnosisID
+                WHERE EntryID = $1;
             `;
             const result = await pool.query(query, [entryID]);
             
@@ -48,7 +51,14 @@ const medicalRecordEntryController = {
     async getByRecordAll(req, res) {
         try {
             const { recordID } = req.params;
-            const query = `SELECT * FROM MedicalRecordEntries;`;
+            const query = `
+                SELECT m.*, d.Name as DiagnosisName, u.FirstName, u.LastName
+                FROM MedicalRecordEntries m
+                LEFT JOIN Diagnoses d ON m.DiagnosisID = d.DiagnosisID
+                LEFT JOIN Users u ON m.DoctorID = u.UserID
+                WHERE m.RecordID = $1
+                ORDER BY m.EntryDate DESC;
+            `;
             const result = await pool.query(query, [recordID]);
             res.json(result.rows);
         } catch (error) {
@@ -62,15 +72,15 @@ const medicalRecordEntryController = {
     async update(req, res) {
         try {
             const { entryID } = req.params;
-            const { content } = req.body;
+            const { content, diagnosisID } = req.body;
             
             const query = `
                 UPDATE MedicalRecordEntries 
-                SET Content = $1
-                WHERE EntryID = $2 
+                SET Content = $1, DiagnosisID = $2
+                WHERE EntryID = $3 
                 RETURNING *;
             `;
-            const values = [content, entryID];
+            const values = [content, diagnosisID, entryID];
             const result = await pool.query(query, values);
             
             if (!result.rows.length) {
@@ -107,4 +117,4 @@ const medicalRecordEntryController = {
     }
 };
 
-module.exports = medicalRecordEntryController
+module.exports = medicalRecordEntryController;

@@ -23,6 +23,7 @@ import ManageLabTests from "./pages/admin/ManageLabTests"
 import ManageDocumentTemplates from "./pages/admin/ManageDocumentTemplates"
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import ManageEventTypes from "./pages/admin/ManageEventTypes"
+import ManageDiagnosis from "./pages/admin/ManageDiagnosis"
 
 const PrivateRoute = ({ children }) => {
   const { user } = useAuth()
@@ -184,6 +185,14 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <ManageMedications />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/manage-diagnosis"
+              element={
+                <PrivateRoute>
+                  <ManageDiagnosis />
                 </PrivateRoute>
               }
             />

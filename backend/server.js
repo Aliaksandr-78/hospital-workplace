@@ -26,6 +26,8 @@ const eventTypesRoutes = require('./routes/eventTypesRoutes')
 const medicalRecordEntryRoutes = require('./routes/medicalRecordEntryRoutes')
 const labTestResultController = require('./routes/labTestResultRoutes')
 const aiRoutes = require('./routes/aiRoutes')
+const diagnosisRoutes = require('./routes/diagnosisRoutes')
+const diagnosisMedicationRoutes = require('./routes/diagnosisMedicationRoutes')
 
 const app = express()
 
@@ -57,6 +59,9 @@ app.use('/api/event-types', eventTypesRoutes)
 app.use('/api/medical-record-entry', medicalRecordEntryRoutes)
 app.use('/api/lab-test-result', labTestResultController)
 app.use('/api/ai', aiRoutes)
+app.use('/api/diagnosis', diagnosisRoutes)
+app.use('/api/diagnosis-medication', diagnosisMedicationRoutes)
+
 
 
 pool.connect()

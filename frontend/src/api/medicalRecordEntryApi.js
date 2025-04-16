@@ -2,7 +2,7 @@ import api from "./axiosInstance";
 
 /**
  * Создание новой записи в медицинской карте
- * @param {Object} entryData - Данные записи { recordID, doctorID, entryType, content }
+ * @param {Object} entryData - Данные записи { recordID, doctorID, entryType, content, diagnosisID }
  * @returns {Promise<Object>} - Созданная запись
  */
 export const createMedicalRecordEntry = async (entryData) => {
@@ -39,15 +39,21 @@ export const getMedicalRecordEntryById = async (entryID) => {
 };
 
 /**
- * Получение всех записей медицинской карты
- * @returns {Promise<Array>} - Список всех записей
+ * Получение всех записей медицинской карты по RecordID
+ * @param {string} recordID - ID медицинской карты
+ * @returns {Promise<Array>} - Список всех записей для указанной карты
  */
-export const getAllMedicalRecordEntries = async () => {
+export const getMedicalRecordEntriesByRecordId = async (recordID) => {
   try {
-    const response = await api.get("medical-record-entry/medicalRecordEntryAll");
+    const response = await api.get(
+      `medical-record-entry/medicalRecordEntryAll/${recordID}`
+    );
     return response.data;
   } catch (error) {
-    console.error("Ошибка при получении всех записей медицинской карты:", error);
+    console.error(
+      `Ошибка при получении записей медицинской карты для RecordID ${recordID}:`,
+      error
+    );
     throw error;
   }
 };
@@ -55,7 +61,7 @@ export const getAllMedicalRecordEntries = async () => {
 /**
  * Обновление записи медицинской карты
  * @param {string} entryID - ID записи
- * @param {Object} updatedData - Обновленные данные { content }
+ * @param {Object} updatedData - Обновленные данные { content, diagnosisID }
  * @returns {Promise<Object>} - Обновленная запись
  */
 export const updateMedicalRecordEntry = async (entryID, updatedData) => {
