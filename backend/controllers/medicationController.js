@@ -3,12 +3,39 @@ const { pool } = require('../config/db')
 const medicationController = {
     async create(req, res) {
         try {
-            const { name, description, dosageRecommendations } = req.body
+            const { 
+                name, 
+                description, 
+                dosageRecommendations, 
+                category, 
+                contraindications, 
+                sideEffects, 
+                interactions, 
+                isPrescriptionOnly, 
+                rbRegistrationNumber 
+            } = req.body
+            
             const query = `
-                INSERT INTO Medications (Name, Description, DosageRecommendations) 
-                VALUES ($1, $2, $3) RETURNING *;
+                INSERT INTO Medications (
+                    Name, Description, DosageRecommendations, Category, 
+                    Contraindications, SideEffects, Interactions, 
+                    IsPrescriptionOnly, RBRegistrationNumber
+                ) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+                RETURNING *;
             `
-            const values = [name, description, dosageRecommendations]
+            const values = [
+                name, 
+                description, 
+                dosageRecommendations, 
+                category, 
+                contraindications, 
+                sideEffects, 
+                interactions, 
+                isPrescriptionOnly, 
+                rbRegistrationNumber
+            ]
+            
             const result = await pool.query(query, values)
             res.status(201).json(result.rows[0])
         } catch (error) {
@@ -43,13 +70,46 @@ const medicationController = {
     async update(req, res) {
         try {
             const { medicationID } = req.params
-            const { name, description, dosageRecommendations } = req.body
+            const { 
+                name, 
+                description, 
+                dosageRecommendations, 
+                category, 
+                contraindications, 
+                sideEffects, 
+                interactions, 
+                isPrescriptionOnly, 
+                rbRegistrationNumber 
+            } = req.body
+            
             const query = `
                 UPDATE Medications 
-                SET Name = $1, Description = $2, DosageRecommendations = $3 
-                WHERE MedicationID = $4 RETURNING *;
+                SET 
+                    Name = $1, 
+                    Description = $2, 
+                    DosageRecommendations = $3,
+                    Category = $4,
+                    Contraindications = $5,
+                    SideEffects = $6,
+                    Interactions = $7,
+                    IsPrescriptionOnly = $8,
+                    RBRegistrationNumber = $9
+                WHERE MedicationID = $10 
+                RETURNING *;
             `
-            const values = [name, description, dosageRecommendations, medicationID]
+            const values = [
+                name, 
+                description, 
+                dosageRecommendations, 
+                category, 
+                contraindications, 
+                sideEffects, 
+                interactions, 
+                isPrescriptionOnly, 
+                rbRegistrationNumber,
+                medicationID
+            ]
+            
             const result = await pool.query(query, values)
             if (!result.rows.length) {
                 return res.status(404).json({ message: "Medication not found" })

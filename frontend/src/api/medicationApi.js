@@ -1,8 +1,18 @@
 import api from "./axiosInstance"
 
 /**
- * @param {Object} medicationData - Данные для создания медикамента.
- * @returns {Promise<Object>} - Созданный медикамент.
+ * Создает новый медикамент
+ * @param {Object} medicationData - Данные медикамента
+ * @param {string} medicationData.name - Название препарата
+ * @param {string} medicationData.description - Описание
+ * @param {string} medicationData.dosageRecommendations - Рекомендации по дозировке
+ * @param {string} medicationData.category - Категория
+ * @param {string} medicationData.contraindications - Противопоказания
+ * @param {string} medicationData.sideEffects - Побочные эффекты
+ * @param {string} medicationData.interactions - Взаимодействия
+ * @param {boolean} medicationData.isPrescriptionOnly - Требуется рецепт
+ * @param {string} medicationData.rbRegistrationNumber - Регистрационный номер в РБ
+ * @returns {Promise<Object>} - Созданный медикамент
  */
 export const createMedication = async (medicationData) => {
   try {
@@ -15,7 +25,8 @@ export const createMedication = async (medicationData) => {
 }
 
 /**
- * @returns {Promise<Array>} - Список медикаментов.
+ * Получает список всех медикаментов
+ * @returns {Promise<Array>} - Список медикаментов
  */
 export const getAllMedications = async () => {
   try {
@@ -28,8 +39,9 @@ export const getAllMedications = async () => {
 }
 
 /**
- * @param {string} medicationID - ID медикамента.
- * @returns {Promise<Object>} - Данные медикамента.
+ * Получает медикамент по ID
+ * @param {string} medicationID - ID медикамента
+ * @returns {Promise<Object>} - Данные медикамента
  */
 export const getMedicationById = async (medicationID) => {
   try {
@@ -42,9 +54,10 @@ export const getMedicationById = async (medicationID) => {
 }
 
 /**
- * @param {string} medicationID - ID медикамента.
- * @param {Object} updatedData - Обновленные данные.
- * @returns {Promise<Object>} - Обновленный медикамент.
+ * Обновляет данные медикамента
+ * @param {string} medicationID - ID медикамента
+ * @param {Object} updatedData - Обновленные данные
+ * @returns {Promise<Object>} - Обновленный медикамент
  */
 export const updateMedication = async (medicationID, updatedData) => {
   try {
@@ -57,8 +70,9 @@ export const updateMedication = async (medicationID, updatedData) => {
 }
 
 /**
- * @param {string} medicationID - ID медикамента.
- * @returns {Promise<Object>} - Результат удаления.
+ * Удаляет медикамент
+ * @param {string} medicationID - ID медикамента
+ * @returns {Promise<Object>} - Результат удаления
  */
 export const deleteMedication = async (medicationID) => {
   try {
