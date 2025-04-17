@@ -24,6 +24,7 @@ import ManageDocumentTemplates from "./pages/admin/ManageDocumentTemplates"
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import ManageEventTypes from "./pages/admin/ManageEventTypes"
 import ManageDiagnosis from "./pages/admin/ManageDiagnosis"
+import PatientMedicalRecord from "./pages/dashboard/PatientMedicalRecord"
 
 const PrivateRoute = ({ children }) => {
   const { user } = useAuth()
@@ -73,6 +74,14 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <Patients />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/patient-medical-record/:recordId"
+              element={
+                <PrivateRoute>
+                  <PatientMedicalRecord />
                 </PrivateRoute>
               }
             />

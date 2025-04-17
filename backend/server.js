@@ -30,6 +30,7 @@ const diagnosisRoutes = require('./routes/diagnosisRoutes')
 const diagnosisMedicationRoutes = require('./routes/diagnosisMedicationRoutes')
 const medicationContraindicationsRoutes = require('./routes/medicationContraindicationsRoutes')
 const patientFeaturesRoutes = require('./routes/patientFeaturesRoutes')
+const recordEntryPrescriptionsRoutes = require('./routes/recordEntryPrescriptionsRoutes')
 
 const app = express()
 
@@ -65,6 +66,7 @@ app.use('/api/diagnosis', diagnosisRoutes)
 app.use('/api/diagnosis-medication', diagnosisMedicationRoutes)
 app.use('/api/medication-contraindications', medicationContraindicationsRoutes)
 app.use('/api/patient-features', patientFeaturesRoutes)
+app.use('/api/record-entry-prescriptions', recordEntryPrescriptionsRoutes)
 
 
 

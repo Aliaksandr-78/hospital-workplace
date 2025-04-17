@@ -23,7 +23,7 @@ export const createMedicalRecordEntry = async (entryData) => {
  * @param {string} entryID - ID записи
  * @returns {Promise<Object>} - Данные записи
  */
-export const getMedicalRecordEntryById = async (entryID) => {
+export const getMedicalRecordById = async (entryID) => {
   try {
     const response = await api.get(
       `medical-record-entry/medicalRecordEntryId/${entryID}`

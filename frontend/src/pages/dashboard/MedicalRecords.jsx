@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import { createMedicalRecord, getAllMedicalRecords, deleteMedicalRecord } from "../../api/medicalRecordApi"
 import { getAllPatients } from "../../api/patientApi"
@@ -9,6 +10,7 @@ import Input from "../../components/Input"
 import Modal from "../../components/Modal"
 
 const MedicalRecords = () => {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [medicalRecords, setMedicalRecords] = useState([])
@@ -122,12 +124,20 @@ const MedicalRecords = () => {
                     {new Date(record.createdat).toLocaleDateString()}
                   </td>
                   <td className="py-2 px-4 border-b text-center">
-                    <Button
-                      onClick={() => handleDelete(record.recordid)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Удалить
-                    </Button>
+                    <div className="flex justify-center space-x-2">
+                      <Button
+                        onClick={() => navigate(`/patient-medical-record/${record.recordid}`)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Перейти
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(record.recordid)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Удалить
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

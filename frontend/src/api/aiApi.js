@@ -39,7 +39,10 @@ export const getMedicationRecommendations = async (diagnosisId, patientId = null
       `Ошибка при получении рекомендаций для диагноза ID ${diagnosisId}:`, 
       error
     );
-    throw error;
+    throw new Error(
+      error.response?.data?.error || 
+      'Не удалось получить рекомендации. Пожалуйста, попробуйте позже.'
+    );
   }
 };
 
@@ -65,48 +68,9 @@ export const sendPrescriptionFeedback = async (feedbackData) => {
       `Ошибка при отправке обратной связи для назначения ID ${feedbackData.prescriptionId}:`,
       error
     );
-    throw error;
-  }
-};
-
-/**
- * Создает назначение на основе ИИ-рекомендации
- * @param {Object} prescriptionData - Данные для назначения
- * @param {string} prescriptionData.diagnosisId - ID диагноза
- * @param {string} prescriptionData.medicationId - ID лекарства
- * @param {string} prescriptionData.patientId - ID пациента
- * @param {string} prescriptionData.doctorId - ID врача
- * @param {string} prescriptionData.dosage - Дозировка
- * @param {string} prescriptionData.instructions - Инструкции
- * @returns {Promise<Object>} - Созданное назначение
- */
-export const createAIRecommendation = async (prescriptionData) => {
-  try {
-    const response = await api.post("ai/create-prescription", prescriptionData);
-    return response.data;
-  } catch (error) {
-    console.error(
-      "Ошибка при создании назначения на основе ИИ-рекомендации:",
-      error
+    throw new Error(
+      error.response?.data?.error || 
+      'Не удалось отправить обратную связь. Пожалуйста, попробуйте позже.'
     );
-    throw error;
-  }
-};
-
-/**
- * Получает историю рекомендаций для пациента
- * @param {string} patientId - ID пациента
- * @returns {Promise<Array>} - История рекомендаций
- */
-export const getPatientRecommendationHistory = async (patientId) => {
-  try {
-    const response = await api.get(`ai/history/${patientId}`);
-    return response.data;
-  } catch (error) {
-    console.error(
-      `Ошибка при получении истории рекомендаций для пациента ID ${patientId}:`,
-      error
-    );
-    throw error;
   }
 };
