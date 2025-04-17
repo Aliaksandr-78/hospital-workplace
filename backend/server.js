@@ -28,6 +28,7 @@ const labTestResultController = require('./routes/labTestResultRoutes')
 const aiRoutes = require('./routes/aiRoutes')
 const diagnosisRoutes = require('./routes/diagnosisRoutes')
 const diagnosisMedicationRoutes = require('./routes/diagnosisMedicationRoutes')
+const medicationContraindicationsRoutes = require('./routes/medicationContraindicationsRoutes')
 
 const app = express()
 
@@ -61,6 +62,7 @@ app.use('/api/lab-test-result', labTestResultController)
 app.use('/api/ai', aiRoutes)
 app.use('/api/diagnosis', diagnosisRoutes)
 app.use('/api/diagnosis-medication', diagnosisMedicationRoutes)
+app.use('/api/medication-contraindications', medicationContraindicationsRoutes)
 
 
 
