@@ -12,9 +12,18 @@ import api from "./axiosInstance";
  */
 export const createPatientFeature = async (data) => {
   try {
+    // Приводим данные к формату бэкенда
+    const requestData = {
+      PatientID: data.patientid,
+      FeatureType: data.featuretype,
+      FeatureValue: data.featurevalue,
+      DateIdentified: data.dateidentified || new Date().toISOString(),
+      IsActive: data.isactive !== false
+    };
+
     const response = await api.post(
       "patient-features/patientFeaturesCreate/", 
-      data
+      requestData
     );
     return response.data;
   } catch (error) {

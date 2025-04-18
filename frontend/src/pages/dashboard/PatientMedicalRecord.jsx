@@ -58,10 +58,10 @@ const PatientMedicalRecord = () => {
 
   // Состояния для форм
   const [featureForm, setFeatureForm] = useState({
-    featuretype: "",
+    featuretype: "disease", // Установите значение по умолчанию
     featurevalue: "",
-    dateidentified: "",
-    isactive: true,
+    dateidentified: new Date().toISOString().split('T')[0], // Текущая дата
+    isactive: true
   });
   const [entryForm, setEntryForm] = useState({
     entrytype: "consultation",
@@ -89,6 +89,16 @@ const PatientMedicalRecord = () => {
 
   // Вспомогательные функции
   const [doctorsSpecialties, setDoctorsSpecialties] = useState({});
+
+  const FEATURE_TYPES = [
+    { value: "Заболевание", label: "Заболевание" },
+    { value: "Патологическое состояние", label: "Патологическое состояние" },
+    { value: "Аллергия", label: "Аллергия" },
+    { value: "Непереносимость", label: "Непереносимость" },
+    { value: "Физиологическая особенность", label: "Физиологическая особенность" },
+    { value: "Привычка", label: "Привычка" },
+    { value: "Психологический фактор", label: "Психологический фактор" }
+  ];
 
   const getDoctorSpecialty = useCallback(async (doctorId) => {
     if (!doctorId) return "Неизвестно";
@@ -171,37 +181,56 @@ const PatientMedicalRecord = () => {
         ? {
             featuretype: feature.featuretype,
             featurevalue: feature.featurevalue,
-            dateidentified: feature.dateidentified,
-            isactive: feature.isactive,
+            dateidentified: feature.dateidentified || new Date().toISOString().split('T')[0],
+            isactive: feature.isactive
           }
         : {
-            featuretype: "",
-            featurevalue: "",
-            dateidentified: new Date().toISOString().split("T")[0],
-            isactive: true,
+            featuretype: feature?.featuretype || "disease", // Значение по умолчанию
+            featurevalue: feature?.featurevalue || "",
+            dateidentified: feature?.dateidentified || new Date().toISOString().split('T')[0],
+            isactive: feature?.isactive !== false
           }
     );
+    setError(""); // Сбрасываем ошибки
     setFeatureModalOpen(true);
   };
 
   const handleFeatureSubmit = async (e) => {
     e.preventDefault();
+    
+    // Валидация полей
+    if (!featureForm.featuretype || !featureForm.featurevalue || !featureForm.dateidentified) {
+      setError("Пожалуйста, заполните все обязательные поля");
+      return;
+    }
+  
     try {
+      const featureData = {
+        patientid: medicalRecord.patientid,
+        featuretype: featureForm.featuretype,
+        featurevalue: featureForm.featurevalue.trim(), // Удаляем лишние пробелы
+        dateidentified: featureForm.dateidentified,
+        isactive: featureForm.isactive
+      };
+  
       if (selectedFeature) {
-        const updatedFeature = await updatePatientFeature(selectedFeature.featureid, featureForm);
+        const updatedFeature = await updatePatientFeature(
+          selectedFeature.featureid, 
+          featureData
+        );
         setPatientFeatures(prev =>
-          prev.map(f => (f.featureid === updatedFeature.featureid ? updatedFeature : f)))
+          prev.map(f => f.featureid === updatedFeature.featureid ? updatedFeature : f)
+        );
       } else {
-        const newFeature = await createPatientFeature({
-          patientid: medicalRecord.patientid,
-          ...featureForm,
-        })
+        const newFeature = await createPatientFeature(featureData);
         setPatientFeatures(prev => [...prev, newFeature]);
       }
+      
       setFeatureModalOpen(false);
+      setError("");
     } catch (error) {
       console.error("Ошибка при сохранении особенности:", error);
-      setError("Не удалось сохранить особенность пациента.");
+      setError(error.message || "Не удалось сохранить особенность");
     }
   };
 
@@ -697,34 +726,49 @@ const PatientMedicalRecord = () => {
             {selectedFeature ? "Редактировать особенность" : "Добавить особенность"}
           </h2>
           <form onSubmit={handleFeatureSubmit} className="space-y-4">
-            <Select
-              label="Тип особенности"
-              name="featuretype"
-              value={featureForm.featuretype}
-              onChange={(e) => setFeatureForm({...featureForm, featuretype: e.target.value})}
-              options={[
-                {value: "allergy", label: "Аллергия"},
-                {value: "disease", label: "Заболевание"},
-                {value: "condition", label: "Состояние"},
-              ]}
-              required
-            />
-            <Input
-              label="Значение"
-              name="featurevalue"
-              value={featureForm.featurevalue}
-              onChange={(e) => setFeatureForm({...featureForm, featurevalue: e.target.value})}
-              placeholder="Например: Пенициллин"
-              required
-            />
-            <Input
-              label="Дата выявления"
-              name="dateidentified"
-              type="date"
-              value={featureForm.dateidentified}
-              onChange={(e) => setFeatureForm({...featureForm, dateidentified: e.target.value})}
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Тип особенности <span className="text-red-500">*</span>
+              </label>
+              <Select
+                label="Тип особенности"
+                name="featuretype"
+                value={featureForm.featuretype || "disease"} // Значение по умолчанию
+                onChange={(value) => setFeatureForm({...featureForm, featuretype: value})}
+                options={FEATURE_TYPES}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Значение <span className="text-red-500">*</span>
+              </label>
+              <Input
+                name="featurevalue"
+                value={featureForm.featurevalue}
+                onChange={(e) => setFeatureForm({...featureForm, featurevalue: e.target.value})}
+                placeholder="Например: Пенициллин"
+                required
+              />
+              {!featureForm.featurevalue && (
+                <p className="mt-1 text-sm text-red-500">Это поле обязательно для заполнения</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Дата выявления <span className="text-red-500">*</span>
+              </label>
+              <Input
+                name="dateidentified"
+                type="date"
+                value={featureForm.dateidentified}
+                onChange={(e) => setFeatureForm({...featureForm, dateidentified: e.target.value})}
+                required
+              />
+            </div>
+            
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -734,8 +778,9 @@ const PatientMedicalRecord = () => {
                 onChange={(e) => setFeatureForm({...featureForm, isactive: e.target.checked})}
                 className="mr-2"
               />
-              <label htmlFor="isactive">Активно</label>
+              <label htmlFor="isactive">Актуально</label>
             </div>
+            
             <div className="flex justify-end space-x-4">
               <Button
                 type="button"
