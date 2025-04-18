@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
+import { useParams } from 'react-router-dom'
 import PropTypes from 'prop-types';
 import {
-  getMedicalRecordById,
   getMedicalRecordEntriesByRecordId,
   createMedicalRecordEntry,
   updateMedicalRecordEntry,
@@ -20,9 +20,8 @@ import {
   updateLabTestResult,
   deleteLabTestResult,
 } from "../../api/labTestResultApi";
-import {
-  createPrescription,
-} from "../../api/prescriptionApi";
+import { getMedicalRecordById } from "../../api/medicalRecordApi";
+import { createPrescription } from "../../api/prescriptionApi";
 import { createEntryPrescription } from "../../api/recordEntryPrescriptionsApi";
 import { getMedicationRecommendations } from "../../api/aiApi";
 import { getAllSpecialties } from "../../api/specialtyApi";
@@ -35,7 +34,8 @@ import Modal from "../../components/Modal";
 import Input from "../../components/Input";
 import Select from "../../components/Select";
 
-const PatientMedicalRecord = ({ recordId }) => {
+const PatientMedicalRecord = () => {
+  const { recordId } = useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [medicalRecord, setMedicalRecord] = useState(null);
@@ -58,29 +58,29 @@ const PatientMedicalRecord = ({ recordId }) => {
 
   // Состояния для форм
   const [featureForm, setFeatureForm] = useState({
-    FeatureType: "",
-    FeatureValue: "",
-    DateIdentified: "",
-    IsActive: true,
+    featuretype: "",
+    featurevalue: "",
+    dateidentified: "",
+    isactive: true,
   });
   const [entryForm, setEntryForm] = useState({
-    EntryType: "consultation",
-    Content: "",
-    DiagnosisID: "",
+    entrytype: "consultation",
+    content: "",
+    diagnosisid: "",
   });
   const [labTestForm, setLabTestForm] = useState({
-    TestID: "",
-    OrderedBy: "",
-    ResultValue: "",
-    ReferenceRange: "",
-    Interpretation: "",
-    Status: "ordered",
+    testid: "",
+    orderedby: "",
+    resultvalue: "",
+    referencerange: "",
+    interpretation: "",
+    status: "ordered",
   });
   const [prescriptionForm, setPrescriptionForm] = useState({
-    MedicationID: "",
-    Dosage: "",
-    Instructions: "",
-    IsAIRecommended: false,
+    medicationid: "",
+    dosage: "",
+    instructions: "",
+    isairecommended: false,
   });
 
   // Состояния для рекомендаций
@@ -91,6 +91,7 @@ const PatientMedicalRecord = ({ recordId }) => {
   const [doctorsSpecialties, setDoctorsSpecialties] = useState({});
 
   const getDoctorSpecialty = useCallback(async (doctorId) => {
+    if (!doctorId) return "Неизвестно";
     if (doctorsSpecialties[doctorId]) {
       return doctorsSpecialties[doctorId];
     }
@@ -110,49 +111,57 @@ const PatientMedicalRecord = ({ recordId }) => {
       console.error("Ошибка при получении специализации врача:", error);
       return "Неизвестно";
     }
-  }, [doctorsSpecialties, specialties]);
+  }, [doctorsSpecialties, specialties]); // Добавьте зависимости
 
   useEffect(() => {
+    if (!recordId) return;
+
     const fetchData = async () => {
       try {
         setLoading(true);
         
         const recordData = await getMedicalRecordById(recordId);
+        if (!recordData?.recordid) {
+          throw new Error("Медицинская карта не найдена");
+        }
+        
         setMedicalRecord(recordData);
         
-        const featuresData = await getFeaturesByPatient(recordData.PatientID);
+        // Загружаем данные параллельно, где возможно
+        const [featuresData, entriesData, labTestsData, specialtiesData, labCatalogData] = 
+          await Promise.all([
+            getFeaturesByPatient(recordData.patientid),
+            getMedicalRecordEntriesByRecordId(recordId),
+            getLabTestResultsByPatient(recordData.patientid),
+            getAllSpecialties(),
+            getAllLabTests()
+          ]);
+
         setPatientFeatures(featuresData);
-        
-        const entriesData = await getMedicalRecordEntriesByRecordId(recordId);
-        
+        setSpecialties(specialtiesData);
+        setLabTestCatalog(labCatalogData);
+        setLabTests(labTestsData);
+
+        // Обрабатываем записи после загрузки специализаций
         const entriesWithSpecialties = await Promise.all(
-          entriesData.map(async entry => {
-            const specialty = await getDoctorSpecialty(entry.DoctorID);
-            return { ...entry, DoctorSpecialty: specialty };
-          })
+          entriesData.map(async entry => ({
+            ...entry,
+            doctorspecialty: await getDoctorSpecialty(entry.doctorid)
+          }))
         );
         
         setEntries(entriesWithSpecialties);
         
-        const labTestsData = await getLabTestResultsByPatient(recordData.PatientID);
-        setLabTests(labTestsData);
-        
-        const specialtiesData = await getAllSpecialties();
-        setSpecialties(specialtiesData);
-        
-        const labCatalogData = await getAllLabTests();
-        setLabTestCatalog(labCatalogData);
-        
       } catch (error) {
         console.error("Ошибка при загрузке данных:", error);
-        setError("Не удалось загрузить данные. Пожалуйста, попробуйте позже.");
+        setError(error.message || "Не удалось загрузить данные");
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [recordId, getDoctorSpecialty]);
+  }, [recordId]);
 
   // Обработчики для особенностей пациента
   const openFeatureModal = (feature = null) => {
@@ -160,16 +169,16 @@ const PatientMedicalRecord = ({ recordId }) => {
     setFeatureForm(
       feature
         ? {
-            FeatureType: feature.FeatureType,
-            FeatureValue: feature.FeatureValue,
-            DateIdentified: feature.DateIdentified,
-            IsActive: feature.IsActive,
+            featuretype: feature.featuretype,
+            featurevalue: feature.featurevalue,
+            dateidentified: feature.dateidentified,
+            isactive: feature.isactive,
           }
         : {
-            FeatureType: "",
-            FeatureValue: "",
-            DateIdentified: new Date().toISOString().split("T")[0],
-            IsActive: true,
+            featuretype: "",
+            featurevalue: "",
+            dateidentified: new Date().toISOString().split("T")[0],
+            isactive: true,
           }
     );
     setFeatureModalOpen(true);
@@ -179,12 +188,12 @@ const PatientMedicalRecord = ({ recordId }) => {
     e.preventDefault();
     try {
       if (selectedFeature) {
-        const updatedFeature = await updatePatientFeature(selectedFeature.FeatureID, featureForm);
+        const updatedFeature = await updatePatientFeature(selectedFeature.featureid, featureForm);
         setPatientFeatures(prev =>
-          prev.map(f => (f.FeatureID === updatedFeature.FeatureID ? updatedFeature : f)))
+          prev.map(f => (f.featureid === updatedFeature.featureid ? updatedFeature : f)))
       } else {
         const newFeature = await createPatientFeature({
-          PatientID: medicalRecord.PatientID,
+          patientid: medicalRecord.patientid,
           ...featureForm,
         })
         setPatientFeatures(prev => [...prev, newFeature]);
@@ -199,7 +208,7 @@ const PatientMedicalRecord = ({ recordId }) => {
   const handleDeleteFeature = async (featureId) => {
     try {
       await deletePatientFeature(featureId);
-      setPatientFeatures(prev => prev.filter(f => f.FeatureID !== featureId));
+      setPatientFeatures(prev => prev.filter(f => f.featureid !== featureId));
       setSelectedFeature(null);
     } catch (error) {
       console.error("Ошибка при удалении особенности:", error);
@@ -211,8 +220,8 @@ const PatientMedicalRecord = ({ recordId }) => {
     try {
       const updatedFeature = await toggleFeatureStatus(featureId);
       setPatientFeatures(prev =>
-        prev.map(f => (f.FeatureID === featureId ? updatedFeature : f)))
-      if (selectedFeature?.FeatureID === featureId) {
+        prev.map(f => (f.featureid === featureId ? updatedFeature : f)))
+      if (selectedFeature?.featureid === featureId) {
         setSelectedFeature(updatedFeature);
       }
     } catch (error) {
@@ -227,14 +236,14 @@ const PatientMedicalRecord = ({ recordId }) => {
     setEntryForm(
       entry
         ? {
-            EntryType: entry.EntryType,
-            Content: entry.Content,
-            DiagnosisID: entry.DiagnosisID || "",
+            entrytype: entry.entrytype,
+            content: entry.content,
+            diagnosisid: entry.diagnosisid || "",
           }
         : {
-            EntryType: "consultation",
-            Content: "",
-            DiagnosisID: "",
+            entrytype: "consultation",
+            content: "",
+            diagnosisid: "",
           }
     );
     setEntryModalOpen(true);
@@ -245,17 +254,17 @@ const PatientMedicalRecord = ({ recordId }) => {
     try {
       if (selectedEntry) {
         const updatedEntry = await updateMedicalRecordEntry(
-          selectedEntry.EntryID,
+          selectedEntry.entryid,
           entryForm
         );
         setEntries(prev =>
-          prev.map(e => (e.EntryID === updatedEntry.EntryID ? updatedEntry : e))
+          prev.map(e => (e.entryid === updatedEntry.entryid ? updatedEntry : e))
         );
         setSelectedEntry(updatedEntry);
       } else {
         const newEntry = await createMedicalRecordEntry({
-          RecordID: recordId,
-          DoctorID: 1, // Здесь должен быть ID текущего пользователя
+          recordid: recordId,
+          doctorid: 1, // Здесь должен быть ID текущего пользователя
           ...entryForm,
         });
         setEntries(prev => [...prev, newEntry]);
@@ -271,7 +280,7 @@ const PatientMedicalRecord = ({ recordId }) => {
   const handleDeleteEntry = async (entryId) => {
     try {
       await deleteMedicalRecordEntry(entryId);
-      setEntries(prev => prev.filter(e => e.EntryID !== entryId));
+      setEntries(prev => prev.filter(e => e.entryid !== entryId));
       setSelectedEntry(null);
     } catch (error) {
       console.error("Ошибка при удалении записи:", error);
@@ -285,20 +294,20 @@ const PatientMedicalRecord = ({ recordId }) => {
     setLabTestForm(
       labTest
         ? {
-            TestID: labTest.TestID,
-            OrderedBy: labTest.OrderedBy,
-            ResultValue: labTest.ResultValue || "",
-            ReferenceRange: labTest.ReferenceRange || "",
-            Interpretation: labTest.Interpretation || "",
-            Status: labTest.Status || "ordered",
+            testid: labTest.testid,
+            orderedby: labTest.orderedby,
+            resultvalue: labTest.resultvalue || "",
+            referencerange: labTest.referencerange || "",
+            interpretation: labTest.interpretation || "",
+            status: labTest.status || "ordered",
           }
         : {
-            TestID: "",
-            OrderedBy: 1, // ID текущего пользователя
-            ResultValue: "",
-            ReferenceRange: "",
-            Interpretation: "",
-            Status: "ordered",
+            testid: "",
+            orderedby: 1, // ID текущего пользователя
+            resultvalue: "",
+            referencerange: "",
+            interpretation: "",
+            status: "ordered",
           }
     );
     setLabTestModalOpen(true);
@@ -309,16 +318,16 @@ const PatientMedicalRecord = ({ recordId }) => {
     try {
       if (selectedLabTest) {
         const updatedLabTest = await updateLabTestResult(
-          selectedLabTest.ResultID,
+          selectedLabTest.resultid,
           labTestForm
         );
         setLabTests(prev =>
-          prev.map(t => (t.ResultID === updatedLabTest.ResultID ? updatedLabTest : t))
+          prev.map(t => (t.resultid === updatedLabTest.resultid ? updatedLabTest : t))
         );
         setSelectedLabTest(updatedLabTest);
       } else {
         const newLabTest = await createLabTestResult({
-          PatientID: medicalRecord.PatientID,
+          patientid: medicalRecord.patientid,
           ...labTestForm,
         });
         setLabTests(prev => [...prev, newLabTest]);
@@ -334,7 +343,7 @@ const PatientMedicalRecord = ({ recordId }) => {
   const handleDeleteLabTest = async (resultId) => {
     try {
       await deleteLabTestResult(resultId);
-      setLabTests(prev => prev.filter(t => t.ResultID !== resultId));
+      setLabTests(prev => prev.filter(t => t.resultid !== resultId));
       setSelectedLabTest(null);
     } catch (error) {
       console.error("Ошибка при удалении лабораторного теста:", error);
@@ -345,10 +354,10 @@ const PatientMedicalRecord = ({ recordId }) => {
   // Обработчики для назначений
   const openPrescriptionModal = () => {
     setPrescriptionForm({
-      MedicationID: "",
-      Dosage: "",
-      Instructions: "",
-      IsAIRecommended: false,
+      medicationid: "",
+      dosage: "",
+      instructions: "",
+      isairecommended: false,
     });
     setPrescriptionModalOpen(true);
   };
@@ -358,8 +367,8 @@ const PatientMedicalRecord = ({ recordId }) => {
     try {
       const newPrescription = {
         ...prescriptionForm,
-        PatientID: medicalRecord.PatientID,
-        DoctorID: 1, // ID текущего пользователя
+        patientid: medicalRecord.patientid,
+        doctorid: 1, // ID текущего пользователя
       };
       setTempPrescriptions(prev => [...prev, newPrescription]);
       setPrescriptionModalOpen(false);
@@ -385,8 +394,8 @@ const PatientMedicalRecord = ({ recordId }) => {
         await Promise.all(
           savedPrescriptions.map(p =>
             createEntryPrescription({
-              EntryID: selectedEntry.EntryID,
-              PrescriptionID: p.PrescriptionID,
+              entryid: selectedEntry.entryid,
+              prescriptionid: p.prescriptionid,
             })
           )
         );
@@ -403,14 +412,14 @@ const PatientMedicalRecord = ({ recordId }) => {
   // Обработчики для рекомендаций
   const getRecommendations = async () => {
     try {
-      if (!entryForm.DiagnosisID) {
+      if (!entryForm.diagnosisid) {
         setError("Необходимо указать диагноз для получения рекомендаций");
         return;
       }
       
       const response = await getMedicationRecommendations(
-        entryForm.DiagnosisID,
-        medicalRecord.PatientID
+        entryForm.diagnosisid,
+        medicalRecord.patientid
       );
       setRecommendations(response.recommendations);
       setRecommendationsModalOpen(true);
@@ -422,20 +431,20 @@ const PatientMedicalRecord = ({ recordId }) => {
 
   const addRecommendationToForm = (medication) => {
     setPrescriptionForm({
-      MedicationID: medication.MedicationID,
-      Dosage: medication.dosage || "",
-      Instructions: medication.instructions || "",
-      IsAIRecommended: true,
-      AIRecommendationScore: medication.confidence,
-      AIContraindicationsChecked: medication.isSafe,
+      medicationid: medication.medicationid,
+      dosage: medication.dosage || "",
+      instructions: medication.instructions || "",
+      isairecommended: true,
+      airecommendationscore: medication.confidence,
+      aicontraindicationschecked: medication.isSafe,
     });
     setRecommendationsModalOpen(false);
     setPrescriptionModalOpen(true);
   };
 
   const getTestName = (testId) => {
-    const test = labTestCatalog.find(t => t.TestID === testId);
-    return test ? test.Name : "Неизвестный тест";
+    const test = labTestCatalog.find(t => t.testid === testId);
+    return test ? test.name : "Неизвестный тест";
   };
 
   if (loading) {
@@ -458,7 +467,7 @@ const PatientMedicalRecord = ({ recordId }) => {
             <div className="max-h-60 overflow-y-auto mb-2">
               {patientFeatures.map(feature => (
                 <div
-                  key={feature.FeatureID}
+                  key={feature.featureid}
                   className={`p-2 mb-1 cursor-pointer rounded ${selectedFeature?.featureid === feature.featureid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
                   onClick={() => setSelectedFeature(feature)}
                 >
@@ -485,10 +494,10 @@ const PatientMedicalRecord = ({ recordId }) => {
             <h2 className="text-xl font-semibold mb-2">Записи в карте</h2>
             <div className="max-h-60 overflow-y-auto mb-2">
               {entries
-                .sort((a, b) => new Date(b.EntryDate) - new Date(a.EntryDate))
+                .sort((a, b) => new Date(b.entrydate) - new Date(a.entrydate))
                 .map(entry => (
                   <div
-                    key={entry.EntryID}
+                    key={entry.entryid}
                     className={`p-2 mb-1 cursor-pointer rounded ${selectedEntry?.entryid === entry.entryid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
                     onClick={() => setSelectedEntry(entry)}
                   >
@@ -513,21 +522,21 @@ const PatientMedicalRecord = ({ recordId }) => {
             <h2 className="text-xl font-semibold mb-2">Лабораторные тесты</h2>
             <div className="max-h-60 overflow-y-auto mb-2">
               {labTests
-                .sort((a) => (a.ResultDate ? 1 : -1))
+                .sort((a) => (a.resultdate ? 1 : -1))
                 .map(test => (
                   <div
-                    key={test.ResultID}
-                    className={`p-2 mb-1 cursor-pointer rounded ${selectedLabTest?.ResultID === test.ResultID ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+                    key={test.resultid}
+                    className={`p-2 mb-1 cursor-pointer rounded ${selectedLabTest?.resultid === test.resultid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
                     onClick={() => setSelectedLabTest(test)}
                   >
                     <div className="flex justify-between">
-                      <span className={!test.ResultDate ? 'font-semibold' : ''}>
-                        {test.ResultDate
-                          ? new Date(test.ResultDate).toLocaleDateString()
-                          : new Date(test.OrderDate).toLocaleDateString()}
+                      <span className={!test.resultdate ? 'font-semibold' : ''}>
+                        {test.resultdate
+                          ? new Date(test.resultdate).toLocaleDateString()
+                          : new Date(test.orderdate).toLocaleDateString()}
                       </span>
                       <span className="text-sm text-gray-500">
-                        {getTestName(test.TestID)}
+                        {getTestName(test.testid)}
                       </span>
                     </div>
                   </div>
@@ -551,10 +560,10 @@ const PatientMedicalRecord = ({ recordId }) => {
             <div className="bg-white p-4 rounded-lg shadow-md mb-4">
               <h2 className="text-xl font-semibold mb-2">Детали особенности</h2>
               <div className="mb-4">
-                <p><strong>Тип:</strong> {selectedFeature.FeatureType}</p>
-                <p><strong>Значение:</strong> {selectedFeature.FeatureValue}</p>
-                <p><strong>Дата выявления:</strong> {new Date(selectedFeature.DateIdentified).toLocaleDateString()}</p>
-                <p><strong>Статус:</strong> {selectedFeature.IsActive ? "Активно" : "Неактивно"}</p>
+                <p><strong>Тип:</strong> {selectedFeature.featuretype}</p>
+                <p><strong>Значение:</strong> {selectedFeature.featurevalue}</p>
+                <p><strong>Дата выявления:</strong> {new Date(selectedFeature.dateidentified).toLocaleDateString()}</p>
+                <p><strong>Статус:</strong> {selectedFeature.isactive ? "Активно" : "Неактивно"}</p>
               </div>
               <div className="flex space-x-2">
                 <Button
@@ -564,13 +573,13 @@ const PatientMedicalRecord = ({ recordId }) => {
                   Редактировать
                 </Button>
                 <Button
-                  onClick={() => handleToggleFeatureStatus(selectedFeature.FeatureID)}
-                  className={selectedFeature.IsActive ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"}
+                  onClick={() => handleToggleFeatureStatus(selectedFeature.featureid)}
+                  className={selectedFeature.isactive ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"}
                 >
-                  {selectedFeature.IsActive ? "Деактивировать" : "Активировать"}
+                  {selectedFeature.isactive ? "Деактивировать" : "Активировать"}
                 </Button>
                 <Button
-                  onClick={() => handleDeleteFeature(selectedFeature.FeatureID)}
+                  onClick={() => handleDeleteFeature(selectedFeature.featureid)}
                   className="bg-red-600 hover:bg-red-700"
                 >
                   Удалить
@@ -584,11 +593,11 @@ const PatientMedicalRecord = ({ recordId }) => {
             <div className="bg-white p-4 rounded-lg shadow-md mb-4">
               <h2 className="text-xl font-semibold mb-2">Детали записи</h2>
               <div className="mb-4">
-                <p><strong>Дата:</strong> {new Date(selectedEntry.EntryDate).toLocaleString()}</p>
-                <p><strong>Тип:</strong> {selectedEntry.EntryType}</p>
-                <p><strong>Содержание:</strong> {selectedEntry.Content}</p>
-                {selectedEntry.DiagnosisID && (
-                  <p><strong>Диагноз:</strong> {selectedEntry.DiagnosisID}</p>
+                <p><strong>Дата:</strong> {new Date(selectedEntry.entrydate).toLocaleString()}</p>
+                <p><strong>Тип:</strong> {selectedEntry.entrytype}</p>
+                <p><strong>Содержание:</strong> {selectedEntry.content}</p>
+                {selectedEntry.diagnosisid && (
+                  <p><strong>Диагноз:</strong> {selectedEntry.diagnosisid}</p>
                 )}
               </div>
               <div className="flex space-x-2 mb-4">
@@ -599,7 +608,7 @@ const PatientMedicalRecord = ({ recordId }) => {
                   Редактировать
                 </Button>
                 <Button
-                  onClick={() => handleDeleteEntry(selectedEntry.EntryID)}
+                  onClick={() => handleDeleteEntry(selectedEntry.entryid)}
                   className="bg-red-600 hover:bg-red-700"
                 >
                   Удалить
@@ -610,9 +619,9 @@ const PatientMedicalRecord = ({ recordId }) => {
               <div className="mb-4">
                 {tempPrescriptions.map((prescription, index) => (
                   <div key={index} className="p-2 mb-2 bg-gray-100 rounded">
-                    <p><strong>Препарат:</strong> {prescription.MedicationID}</p>
-                    <p><strong>Дозировка:</strong> {prescription.Dosage}</p>
-                    <p><strong>Инструкции:</strong> {prescription.Instructions}</p>
+                    <p><strong>Препарат:</strong> {prescription.medicationid}</p>
+                    <p><strong>Дозировка:</strong> {prescription.dosage}</p>
+                    <p><strong>Инструкции:</strong> {prescription.instructions}</p>
                     <Button
                       onClick={() => handleRemoveTempPrescription(index)}
                       className="mt-1 bg-red-600 hover:bg-red-700 text-sm"
@@ -646,20 +655,20 @@ const PatientMedicalRecord = ({ recordId }) => {
             <div className="bg-white p-4 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold mb-2">Детали теста</h2>
               <div className="mb-4">
-                <p><strong>Название:</strong> {getTestName(selectedLabTest.TestID)}</p>
-                <p><strong>Дата назначения:</strong> {new Date(selectedLabTest.OrderDate).toLocaleString()}</p>
-                {selectedLabTest.ResultDate && (
-                  <p><strong>Дата результата:</strong> {new Date(selectedLabTest.ResultDate).toLocaleString()}</p>
+                <p><strong>Название:</strong> {getTestName(selectedLabTest.testid)}</p>
+                <p><strong>Дата назначения:</strong> {new Date(selectedLabTest.orderdate).toLocaleString()}</p>
+                {selectedLabTest.resultdate && (
+                  <p><strong>Дата результата:</strong> {new Date(selectedLabTest.resultdate).toLocaleString()}</p>
                 )}
-                <p><strong>Статус:</strong> {selectedLabTest.Status}</p>
-                {selectedLabTest.ResultValue && (
-                  <p><strong>Результат:</strong> {selectedLabTest.ResultValue}</p>
+                <p><strong>Статус:</strong> {selectedLabTest.status}</p>
+                {selectedLabTest.resultvalue && (
+                  <p><strong>Результат:</strong> {selectedLabTest.resultvalue}</p>
                 )}
-                {selectedLabTest.ReferenceRange && (
-                  <p><strong>Референсные значения:</strong> {selectedLabTest.ReferenceRange}</p>
+                {selectedLabTest.referencerange && (
+                  <p><strong>Референсные значения:</strong> {selectedLabTest.referencerange}</p>
                 )}
-                {selectedLabTest.Interpretation && (
-                  <p><strong>Интерпретация:</strong> {selectedLabTest.Interpretation}</p>
+                {selectedLabTest.interpretation && (
+                  <p><strong>Интерпретация:</strong> {selectedLabTest.interpretation}</p>
                 )}
               </div>
               <div className="flex space-x-2">
@@ -670,7 +679,7 @@ const PatientMedicalRecord = ({ recordId }) => {
                   Редактировать
                 </Button>
                 <Button
-                  onClick={() => handleDeleteLabTest(selectedLabTest.ResultID)}
+                  onClick={() => handleDeleteLabTest(selectedLabTest.resultid)}
                   className="bg-red-600 hover:bg-red-700"
                 >
                   Удалить
@@ -690,9 +699,9 @@ const PatientMedicalRecord = ({ recordId }) => {
           <form onSubmit={handleFeatureSubmit} className="space-y-4">
             <Select
               label="Тип особенности"
-              name="FeatureType"
-              value={featureForm.FeatureType}
-              onChange={(e) => setFeatureForm({...featureForm, FeatureType: e.target.value})}
+              name="featuretype"
+              value={featureForm.featuretype}
+              onChange={(e) => setFeatureForm({...featureForm, featuretype: e.target.value})}
               options={[
                 {value: "allergy", label: "Аллергия"},
                 {value: "disease", label: "Заболевание"},
@@ -702,30 +711,30 @@ const PatientMedicalRecord = ({ recordId }) => {
             />
             <Input
               label="Значение"
-              name="FeatureValue"
-              value={featureForm.FeatureValue}
-              onChange={(e) => setFeatureForm({...featureForm, FeatureValue: e.target.value})}
+              name="featurevalue"
+              value={featureForm.featurevalue}
+              onChange={(e) => setFeatureForm({...featureForm, featurevalue: e.target.value})}
               placeholder="Например: Пенициллин"
               required
             />
             <Input
               label="Дата выявления"
-              name="DateIdentified"
+              name="dateidentified"
               type="date"
-              value={featureForm.DateIdentified}
-              onChange={(e) => setFeatureForm({...featureForm, DateIdentified: e.target.value})}
+              value={featureForm.dateidentified}
+              onChange={(e) => setFeatureForm({...featureForm, dateidentified: e.target.value})}
               required
             />
             <div className="flex items-center">
               <input
                 type="checkbox"
-                id="IsActive"
-                name="IsActive"
-                checked={featureForm.IsActive}
-                onChange={(e) => setFeatureForm({...featureForm, IsActive: e.target.checked})}
+                id="isactive"
+                name="isactive"
+                checked={featureForm.isactive}
+                onChange={(e) => setFeatureForm({...featureForm, isactive: e.target.checked})}
                 className="mr-2"
               />
-              <label htmlFor="IsActive">Активно</label>
+              <label htmlFor="isactive">Активно</label>
             </div>
             <div className="flex justify-end space-x-4">
               <Button
@@ -752,9 +761,9 @@ const PatientMedicalRecord = ({ recordId }) => {
           <form onSubmit={handleEntrySubmit} className="space-y-4">
             <Select
               label="Тип записи"
-              name="EntryType"
-              value={entryForm.EntryType}
-              onChange={(e) => setEntryForm({...entryForm, EntryType: e.target.value})}
+              name="entrytype"
+              value={entryForm.entrytype}
+              onChange={(e) => setEntryForm({...entryForm, entrytype: e.target.value})}
               options={[
                 {value: "consultation", label: "Консультация"},
                 {value: "examination", label: "Осмотр"},
@@ -765,16 +774,16 @@ const PatientMedicalRecord = ({ recordId }) => {
             />
             <Input
               label="Диагноз (код МКБ-10)"
-              name="DiagnosisID"
-              value={entryForm.DiagnosisID}
-              onChange={(e) => setEntryForm({...entryForm, DiagnosisID: e.target.value})}
+              name="diagnosisid"
+              value={entryForm.diagnosisid}
+              onChange={(e) => setEntryForm({...entryForm, diagnosisid: e.target.value})}
               placeholder="Например: J18.9"
             />
             <Input
               label="Содержание"
-              name="Content"
-              value={entryForm.Content}
-              onChange={(e) => setEntryForm({...entryForm, Content: e.target.value})}
+              name="content"
+              value={entryForm.content}
+              onChange={(e) => setEntryForm({...entryForm, content: e.target.value})}
               placeholder="Подробное описание"
               multiline
               required
@@ -784,7 +793,7 @@ const PatientMedicalRecord = ({ recordId }) => {
                 type="button"
                 onClick={() => getRecommendations()}
                 className="bg-blue-600 hover:bg-blue-700"
-                disabled={!entryForm.DiagnosisID}
+                disabled={!entryForm.diagnosisid}
               >
                 Рассчитать рекомендации
               </Button>
@@ -814,20 +823,20 @@ const PatientMedicalRecord = ({ recordId }) => {
           <form onSubmit={handleLabTestSubmit} className="space-y-4">
             <Select
               label="Тест"
-              name="TestID"
-              value={labTestForm.TestID}
-              onChange={(e) => setLabTestForm({...labTestForm, TestID: e.target.value})}
+              name="testid"
+              value={labTestForm.testid}
+              onChange={(e) => setLabTestForm({...labTestForm, testid: e.target.value})}
               options={labTestCatalog.map(test => ({
-                value: test.TestID,
-                label: test.Name,
+                value: test.testid,
+                label: test.name,
               }))}
               required
             />
             <Select
               label="Статус"
-              name="Status"
-              value={labTestForm.Status}
-              onChange={(e) => setLabTestForm({...labTestForm, Status: e.target.value})}
+              name="status"
+              value={labTestForm.status}
+              onChange={(e) => setLabTestForm({...labTestForm, status: e.target.value})}
               options={[
                 {value: "ordered", label: "Назначен"},
                 {value: "in_progress", label: "В процессе"},
@@ -836,28 +845,28 @@ const PatientMedicalRecord = ({ recordId }) => {
               ]}
               required
             />
-            {labTestForm.Status === "completed" && (
+            {labTestForm.status === "completed" && (
               <>
                 <Input
                   label="Результат"
-                  name="ResultValue"
-                  value={labTestForm.ResultValue}
-                  onChange={(e) => setLabTestForm({...labTestForm, ResultValue: e.target.value})}
+                  name="resultvalue"
+                  value={labTestForm.resultvalue}
+                  onChange={(e) => setLabTestForm({...labTestForm, resultvalue: e.target.value})}
                   placeholder="Значение результата"
                   required
                 />
                 <Input
                   label="Референсные значения"
-                  name="ReferenceRange"
-                  value={labTestForm.ReferenceRange}
-                  onChange={(e) => setLabTestForm({...labTestForm, ReferenceRange: e.target.value})}
+                  name="referencerange"
+                  value={labTestForm.referencerange}
+                  onChange={(e) => setLabTestForm({...labTestForm, referencerange: e.target.value})}
                   placeholder="Нормальные значения"
                 />
                 <Input
                   label="Интерпретация"
-                  name="Interpretation"
-                  value={labTestForm.Interpretation}
-                  onChange={(e) => setLabTestForm({...labTestForm, Interpretation: e.target.value})}
+                  name="interpretation"
+                  value={labTestForm.interpretation}
+                  onChange={(e) => setLabTestForm({...labTestForm, interpretation: e.target.value})}
                   placeholder="Интерпретация результата"
                   multiline
                 />
@@ -886,38 +895,38 @@ const PatientMedicalRecord = ({ recordId }) => {
           <form onSubmit={handlePrescriptionSubmit} className="space-y-4">
             <Input
               label="ID препарата"
-              name="MedicationID"
-              value={prescriptionForm.MedicationID}
-              onChange={(e) => setPrescriptionForm({...prescriptionForm, MedicationID: e.target.value})}
+              name="medicationid"
+              value={prescriptionForm.medicationid}
+              onChange={(e) => setPrescriptionForm({...prescriptionForm, medicationid: e.target.value})}
               placeholder="ID лекарственного средства"
               required
             />
             <Input
               label="Дозировка"
-              name="Dosage"
-              value={prescriptionForm.Dosage}
-              onChange={(e) => setPrescriptionForm({...prescriptionForm, Dosage: e.target.value})}
+              name="dosage"
+              value={prescriptionForm.dosage}
+              onChange={(e) => setPrescriptionForm({...prescriptionForm, dosage: e.target.value})}
               placeholder="Например: 500 мг 2 раза в день"
               required
             />
             <Input
               label="Инструкции"
-              name="Instructions"
-              value={prescriptionForm.Instructions}
-              onChange={(e) => setPrescriptionForm({...prescriptionForm, Instructions: e.target.value})}
+              name="instructions"
+              value={prescriptionForm.instructions}
+              onChange={(e) => setPrescriptionForm({...prescriptionForm, instructions: e.target.value})}
               placeholder="Дополнительные инструкции"
               multiline
             />
             <div className="flex items-center">
               <input
                 type="checkbox"
-                id="IsAIRecommended"
-                name="IsAIRecommended"
-                checked={prescriptionForm.IsAIRecommended}
-                onChange={(e) => setPrescriptionForm({...prescriptionForm, IsAIRecommended: e.target.checked})}
+                id="isairecommended"
+                name="isairecommended"
+                checked={prescriptionForm.isairecommended}
+                onChange={(e) => setPrescriptionForm({...prescriptionForm, isairecommended: e.target.checked})}
                 className="mr-2"
               />
-              <label htmlFor="IsAIRecommended">Рекомендовано ИИ</label>
+              <label htmlFor="isairecommended">Рекомендовано ИИ</label>
             </div>
             <div className="flex justify-end space-x-4">
               <Button

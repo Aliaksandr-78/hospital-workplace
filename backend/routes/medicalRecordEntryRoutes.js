@@ -4,7 +4,7 @@ const medicalRecordEntryController = require('../controllers/medicalRecordEntryC
 
 router.post('/medicalRecordEntryCreate/', medicalRecordEntryController.create)
 router.get('/medicalRecordEntryId/:entryID', medicalRecordEntryController.getById)
-router.get('/medicalRecordEntryAll', medicalRecordEntryController.getByRecordAll)
+router.get('/medicalRecordEntryAll/:recordID', medicalRecordEntryController.getByRecordAll)
 router.put('/medicalRecordEntryUpdate/:entryID', medicalRecordEntryController.update)
 router.delete('/medicalRecordEntryDelete/:entryID', medicalRecordEntryController.delete)
 
