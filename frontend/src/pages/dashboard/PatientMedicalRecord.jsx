@@ -33,8 +33,10 @@ import Loader from "../../components/Loader";
 import Modal from "../../components/Modal";
 import Input from "../../components/Input";
 import Select from "../../components/Select";
+import { useAuth } from "../../context/AuthContext";
 
 const PatientMedicalRecord = () => {
+  const { user } = useAuth();
   const { recordId } = useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -98,6 +100,13 @@ const PatientMedicalRecord = () => {
     { value: "Физиологическая особенность", label: "Физиологическая особенность" },
     { value: "Привычка", label: "Привычка" },
     { value: "Психологический фактор", label: "Психологический фактор" }
+  ];
+
+  const TEST_STATUSES = [
+    { value: "Назначен", label: "Назначен" },
+    { value: "В процессе", label: "В процессе" },
+    { value: "Завершен", label: "Завершен" },
+    { value: "Отменен", label: "Отменен" }
   ];
 
   const getDoctorSpecialty = useCallback(async (doctorId) => {
@@ -329,14 +338,16 @@ const PatientMedicalRecord = () => {
             referencerange: labTest.referencerange || "",
             interpretation: labTest.interpretation || "",
             status: labTest.status || "ordered",
+            resultdate: labTest.resultdate || ""
           }
         : {
             testid: "",
-            orderedby: 1, // ID текущего пользователя
+            orderedby: user?.userid || "", // Используем userid текущего пользователя
             resultvalue: "",
             referencerange: "",
             interpretation: "",
             status: "ordered",
+            resultdate: ""
           }
     );
     setLabTestModalOpen(true);
@@ -344,28 +355,52 @@ const PatientMedicalRecord = () => {
 
   const handleLabTestSubmit = async (e) => {
     e.preventDefault();
+    
+    // Валидация
+    if (!labTestForm.testid) {
+      setError("Выберите тип теста");
+      return;
+    }
+  
     try {
+      // Подготовка данных
+      const testData = {
+        patientID: medicalRecord.patientid,
+        testID: labTestForm.testid,
+        orderedBy: labTestForm.orderedby, // Используем сохраненное значение
+        status: labTestForm.status,
+        resultValue: labTestForm.resultvalue || null,
+        referenceRange: labTestForm.referencerange || null,
+        interpretation: labTestForm.interpretation || null,
+        // Если заполнены результаты, устанавливаем performedBy как текущего пользователя
+        performedBy: (labTestForm.resultvalue && labTestForm.resultvalue.trim() !== "") 
+          ? user?.userid 
+          : null,
+        // Если тест завершен, добавляем дату результата
+        ...(labTestForm.status === "Завершен" && {
+          resultDate: labTestForm.resultdate || new Date().toISOString()
+        })
+      };
+  
+      console.log("Отправляемые данные:", testData);
+  
+      let response;
       if (selectedLabTest) {
-        const updatedLabTest = await updateLabTestResult(
-          selectedLabTest.resultid,
-          labTestForm
+        response = await updateLabTestResult(selectedLabTest.resultid, testData);
+        setLabTests(prev => 
+          prev.map(t => t.resultid === response.resultid ? response : t)
         );
-        setLabTests(prev =>
-          prev.map(t => (t.resultid === updatedLabTest.resultid ? updatedLabTest : t))
-        );
-        setSelectedLabTest(updatedLabTest);
       } else {
-        const newLabTest = await createLabTestResult({
-          patientid: medicalRecord.patientid,
-          ...labTestForm,
-        });
-        setLabTests(prev => [...prev, newLabTest]);
-        setSelectedLabTest(newLabTest);
+        response = await createLabTestResult(testData);
+        setLabTests(prev => [...prev, response]);
       }
+      
+      console.log("Ответ сервера:", response);
       setLabTestModalOpen(false);
+      setError("");
     } catch (error) {
-      console.error("Ошибка при сохранении лабораторного теста:", error);
-      setError("Не удалось сохранить лабораторный тест.");
+      console.error("Ошибка сохранения теста:", error);
+      setError(error.response?.data?.message || error.message || "Не удалось сохранить тест");
     }
   };
 
@@ -565,7 +600,7 @@ const PatientMedicalRecord = () => {
                           : new Date(test.orderdate).toLocaleDateString()}
                       </span>
                       <span className="text-sm text-gray-500">
-                        {getTestName(test.testid)}
+                        {test.testname || getTestName(test.testid)} ({test.status})
                       </span>
                     </div>
                   </div>
@@ -684,20 +719,17 @@ const PatientMedicalRecord = () => {
             <div className="bg-white p-4 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold mb-2">Детали теста</h2>
               <div className="mb-4">
-                <p><strong>Название:</strong> {getTestName(selectedLabTest.testid)}</p>
-                <p><strong>Дата назначения:</strong> {new Date(selectedLabTest.orderdate).toLocaleString()}</p>
-                {selectedLabTest.resultdate && (
-                  <p><strong>Дата результата:</strong> {new Date(selectedLabTest.resultdate).toLocaleString()}</p>
-                )}
+                <p><strong>Тест:</strong> {selectedLabTest.testname || getTestName(selectedLabTest.testid)}</p>
                 <p><strong>Статус:</strong> {selectedLabTest.status}</p>
-                {selectedLabTest.resultvalue && (
-                  <p><strong>Результат:</strong> {selectedLabTest.resultvalue}</p>
-                )}
-                {selectedLabTest.referencerange && (
-                  <p><strong>Референсные значения:</strong> {selectedLabTest.referencerange}</p>
-                )}
-                {selectedLabTest.interpretation && (
-                  <p><strong>Интерпретация:</strong> {selectedLabTest.interpretation}</p>
+                <p><strong>Дата назначения:</strong> {new Date(selectedLabTest.orderdate).toLocaleString()}</p>
+                
+                {selectedLabTest.resultdate && (
+                  <>
+                    <p><strong>Дата результата:</strong> {new Date(selectedLabTest.resultdate).toLocaleString()}</p>
+                    <p><strong>Результат:</strong> {selectedLabTest.resultvalue}</p>
+                    <p><strong>Референсные значения:</strong> {selectedLabTest.referencerange}</p>
+                    <p><strong>Интерпретация:</strong> {selectedLabTest.interpretation}</p>
+                  </>
                 )}
               </div>
               <div className="flex space-x-2">
@@ -861,77 +893,91 @@ const PatientMedicalRecord = () => {
 
       {/* Модальное окно для лабораторных тестов */}
       <Modal isOpen={isLabTestModalOpen} onClose={() => setLabTestModalOpen(false)}>
-        <div className="p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            {selectedLabTest ? "Редактировать тест" : "Создать тест"}
-          </h2>
-          <form onSubmit={handleLabTestSubmit} className="space-y-4">
+      <div className="p-6">
+        <h2 className="text-xl font-semibold mb-4">
+          {selectedLabTest ? "Редактировать тест" : "Создать тест"}
+        </h2>
+        <form onSubmit={handleLabTestSubmit} className="space-y-4">
+          {/* Выбор теста из каталога - только при создании */}
+          {!selectedLabTest && (
             <Select
               label="Тест"
               name="testid"
               value={labTestForm.testid}
-              onChange={(e) => setLabTestForm({...labTestForm, testid: e.target.value})}
+              onChange={(value) => setLabTestForm({...labTestForm, testid: value})}
               options={labTestCatalog.map(test => ({
                 value: test.testid,
-                label: test.name,
+                label: test.name
               }))}
               required
+              disabled={!!selectedLabTest} // Блокируем при редактировании
             />
-            <Select
-              label="Статус"
-              name="status"
-              value={labTestForm.status}
-              onChange={(e) => setLabTestForm({...labTestForm, status: e.target.value})}
-              options={[
-                {value: "ordered", label: "Назначен"},
-                {value: "in_progress", label: "В процессе"},
-                {value: "completed", label: "Завершен"},
-                {value: "cancelled", label: "Отменен"},
-              ]}
-              required
-            />
-            {labTestForm.status === "completed" && (
-              <>
-                <Input
-                  label="Результат"
-                  name="resultvalue"
-                  value={labTestForm.resultvalue}
-                  onChange={(e) => setLabTestForm({...labTestForm, resultvalue: e.target.value})}
-                  placeholder="Значение результата"
-                  required
-                />
-                <Input
-                  label="Референсные значения"
-                  name="referencerange"
-                  value={labTestForm.referencerange}
-                  onChange={(e) => setLabTestForm({...labTestForm, referencerange: e.target.value})}
-                  placeholder="Нормальные значения"
-                />
-                <Input
-                  label="Интерпретация"
-                  name="interpretation"
-                  value={labTestForm.interpretation}
-                  onChange={(e) => setLabTestForm({...labTestForm, interpretation: e.target.value})}
-                  placeholder="Интерпретация результата"
-                  multiline
-                />
-              </>
-            )}
-            <div className="flex justify-end space-x-4">
-              <Button
-                type="button"
-                onClick={() => setLabTestModalOpen(false)}
-                className="bg-gray-600 hover:bg-gray-700"
-              >
-                Отмена
-              </Button>
-              <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                {selectedLabTest ? "Сохранить" : "Создать"}
-              </Button>
-            </div>
-          </form>
-        </div>
-      </Modal>
+          )}
+
+          {/* Статус теста */}
+          <Select
+            label="Статус"
+            name="status"
+            value={labTestForm.status}
+            onChange={(value) => setLabTestForm({...labTestForm, status: value})}
+            options={TEST_STATUSES}
+            required
+          />
+
+          {/* Поля, которые показываются только для завершенных тестов */}
+          {(labTestForm.status === "Завершен" || selectedLabTest?.status === "Завершен") && (
+            <>
+              <Input
+                label="Дата результата"
+                name="resultdate"
+                type="datetime-local"
+                value={labTestForm.resultdate}
+                onChange={(e) => setLabTestForm({...labTestForm, resultdate: e.target.value})}
+              />
+              
+              <Input
+                label="Результат"
+                name="resultvalue"
+                value={labTestForm.resultvalue}
+                onChange={(e) => setLabTestForm({...labTestForm, resultvalue: e.target.value})}
+                placeholder="Значение результата"
+                required={labTestForm.status === "Завершен"}
+              />
+              
+              <Input
+                label="Референсные значения"
+                name="referencerange"
+                value={labTestForm.referencerange}
+                onChange={(e) => setLabTestForm({...labTestForm, referencerange: e.target.value})}
+                placeholder="Нормальные значения"
+              />
+              
+              <Input
+                label="Интерпретация"
+                name="interpretation"
+                value={labTestForm.interpretation}
+                onChange={(e) => setLabTestForm({...labTestForm, interpretation: e.target.value})}
+                placeholder="Интерпретация результата"
+                multiline
+              />
+            </>
+          )}
+
+          <div className="flex justify-end space-x-4">
+            <Button
+              type="button"
+              onClick={() => setLabTestModalOpen(false)}
+              className="bg-gray-600 hover:bg-gray-700"
+            >
+              Отмена
+            </Button>
+            <Button type="submit" className="bg-green-600 hover:bg-green-700">
+              {selectedLabTest ? "Сохранить" : "Создать"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </Modal>
 
       {/* Модальное окно для назначений */}
       <Modal isOpen={isPrescriptionModalOpen} onClose={() => setPrescriptionModalOpen(false)}>

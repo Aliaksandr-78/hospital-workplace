@@ -7,38 +7,44 @@ const labTestResultController = {
     async create(req, res) {
         try {
             const { 
-                patientID, 
-                testID, 
-                orderedBy, 
+                patientID: patientId, 
+                testID: testId, 
+                orderedBy: orderedBy, 
                 performedBy, 
                 resultValue, 
                 referenceRange, 
                 interpretation, 
                 status 
             } = req.body;
-
+    
+            // Проверка обязательных полей
+            if (!patientId || !testId || !orderedBy) {
+                return res.status(400).json({ error: 'Необходимо указать patientID, testID и orderedBy' });
+            }
+    
             const query = `
                 INSERT INTO LabTestResults 
                 (PatientID, TestID, OrderedBy, PerformedBy, ResultValue, 
-                 ReferenceRange, Interpretation, Status) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+                 ReferenceRange, Interpretation, Status, OrderDate) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) 
                 RETURNING *;
             `;
             
             const values = [
-                patientID, 
-                testID, 
+                patientId, 
+                testId, 
                 orderedBy, 
-                performedBy, 
-                resultValue, 
-                referenceRange, 
-                interpretation, 
-                status
+                performedBy || null, 
+                resultValue || null, 
+                referenceRange || null, 
+                interpretation || null, 
+                status || 'ordered'
             ];
             
             const result = await pool.query(query, values);
             res.status(201).json(result.rows[0]);
         } catch (error) {
+            console.error('Ошибка при создании результата теста:', error);
             res.status(500).json({ error: error.message });
         }
     },
@@ -83,9 +89,13 @@ const labTestResultController = {
         try {
             const { patientID } = req.params;
             const query = `
-                SELECT * FROM LabTestResults 
-                WHERE PatientID = $1
-                ORDER BY OrderDate DESC;
+                SELECT 
+                    ltr.*,
+                    ltc.Name AS TestName
+                FROM LabTestResults ltr
+                LEFT JOIN LabTestCatalog ltc ON ltr.TestID = ltc.TestID
+                WHERE ltr.PatientID = $1
+                ORDER BY ltr.OrderDate DESC;
             `;
             
             const result = await pool.query(query, [patientID]);

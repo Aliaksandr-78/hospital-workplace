@@ -13,16 +13,19 @@ import api from "./axiosInstance";
  * @param {string} [testResultData.status] - Статус теста
  * @returns {Promise<Object>} - Созданный результат теста
  */
-export const createLabTestResult = async (testResultData) => {
+export const createLabTestResult = async (data) => {
   try {
     const response = await api.post(
       "lab-test-result/labTestResultCreate/",
-      testResultData
+      data
     );
     return response.data;
   } catch (error) {
-    console.error("Ошибка при создании результата теста:", error);
-    throw error;
+    if (error.response?.status === 400) {
+      throw new Error(error.response.data.error || "Неверные данные теста");
+    }
+    console.error("Ошибка при создании теста:", error);
+    throw new Error(error.response?.data?.message || "Не удалось создать тест");
   }
 };
 
@@ -92,19 +95,22 @@ export const getLabTestResultsByPatient = async (patientID) => {
  * @param {string} [updatedData.resultDate] - Дата выполнения теста
  * @returns {Promise<Object>} - Обновленный результат теста
  */
-export const updateLabTestResult = async (resultID, updatedData) => {
+export const updateLabTestResult = async (resultID, data) => {
   try {
     const response = await api.put(
       `lab-test-result/labTestResultUpdate/${resultID}`,
-      updatedData
+      data
     );
     return response.data;
   } catch (error) {
-    console.error(
-      `Ошибка при обновлении результата теста ID ${resultID}:`,
-      error
-    );
-    throw error;
+    if (error.response?.status === 400) {
+      throw new Error(error.response.data.error || "Неверные данные теста");
+    }
+    if (error.response?.status === 404) {
+      throw new Error("Тест не найден");
+    }
+    console.error(`Ошибка при обновлении теста ID ${resultID}:`, error);
+    throw new Error(error.response?.data?.message || "Не удалось обновить тест");
   }
 };
 
