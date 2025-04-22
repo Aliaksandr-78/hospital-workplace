@@ -86,35 +86,39 @@ const recordEntryPrescriptionsController = {
      * @param {Object} req - Запрос
      * @param {Object} res - Ответ
      */
+    // В методе findByEntry обновим запрос:
     async findByEntry(req, res) {
         try {
             const { EntryID } = req.params;
-
+    
             const query = `
                 SELECT 
                     p.PrescriptionID,
                     p.MedicationID,
                     m.Name AS MedicationName,
                     p.Dosage,
-                    p.Frequency,
-                    p.StartDate,
-                    p.EndDate,
                     p.Instructions,
+                    p.IsAIRecommended,
+                    p.AIRecommendationScore,
                     p.DoctorID,
-                    d.FirstName || ' ' || d.LastName AS DoctorName
+                    u.FirstName || ' ' || u.LastName AS DoctorName
                 FROM RecordEntryPrescriptions rep
                 JOIN Prescriptions p ON rep.PrescriptionID = p.PrescriptionID
-                JOIN Medications m ON p.MedicationID = m.MedicationID
-                JOIN Users d ON p.DoctorID = d.UserID
+                LEFT JOIN Medications m ON p.MedicationID = m.MedicationID
+                LEFT JOIN Users u ON p.DoctorID = u.UserID
                 WHERE rep.EntryID = $1
-                ORDER BY p.StartDate DESC;
+                ORDER BY p.PrescriptionID DESC;
             `;
+            
             const result = await pool.query(query, [EntryID]);
-
+    
             res.json(result.rows);
         } catch (error) {
             console.error('Ошибка при поиске назначений:', error);
-            res.status(500).json({ error: 'Не удалось найти назначения для записи' });
+            res.status(500).json({ 
+                error: 'Не удалось найти назначения для записи',
+                details: error.message 
+            });
         }
     }
 };

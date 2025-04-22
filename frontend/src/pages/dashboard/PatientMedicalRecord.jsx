@@ -22,7 +22,7 @@ import {
 } from "../../api/labTestResultApi";
 import { getMedicalRecordById } from "../../api/medicalRecordApi";
 import { createPrescription } from "../../api/prescriptionApi";
-import { createEntryPrescription } from "../../api/recordEntryPrescriptionsApi";
+import { createEntryPrescription, getPrescriptionsByEntry, deleteEntryPrescription } from "../../api/recordEntryPrescriptionsApi";
 import { getMedicationRecommendations } from "../../api/aiApi";
 import { getAllSpecialties } from "../../api/specialtyApi";
 import { getAllLabTests } from "../../api/labTestCatalogApi";
@@ -50,6 +50,7 @@ const PatientMedicalRecord = () => {
   const [labTestCatalog, setLabTestCatalog] = useState([]);
   const [diagnoses, setDiagnoses] = useState([]);
   const [medications, setMedications] = useState([]);
+  const [entryPrescriptions, setEntryPrescriptions] = useState([]);
   
   // Состояния для выбранных элементов
   const [selectedFeature, setSelectedFeature] = useState(null);
@@ -128,6 +129,23 @@ const PatientMedicalRecord = () => {
     { value: "Завершен", label: "Завершен" },
     { value: "Отменен", label: "Отменен" }
   ];
+
+  const loadEntryPrescriptions = async (entryId) => {
+    try {
+      const prescriptions = await getPrescriptionsByEntry(entryId);
+      setEntryPrescriptions(prescriptions);
+    } catch (error) {
+      console.error("Ошибка при загрузке назначений:", error);
+      setError("Не удалось загрузить назначения для записи");
+    }
+  };
+
+  const handleEntrySelect = async (entry) => {
+    setSelectedEntry(entry);
+    if (entry?.entryid) {
+      await loadEntryPrescriptions(entry.entryid);
+    }
+  };
 
   // Получение специализации врача
   const getDoctorSpecialty = useCallback(async (doctorId) => {
@@ -534,6 +552,18 @@ const PatientMedicalRecord = () => {
     }
   };
 
+  const handleDeletePrescription = async (prescriptionId) => {
+    try {
+      await deleteEntryPrescription(selectedEntry.entryid, prescriptionId);
+      setEntryPrescriptions(prev => 
+        prev.filter(p => p.prescriptionid !== prescriptionId)
+      );
+    } catch (error) {
+      console.error("Ошибка при удалении назначения:", error);
+      setError("Не удалось удалить назначение");
+    }
+  };
+
   const handleRemoveTempPrescription = (index) => {
     setTempPrescriptions(prev => prev.filter((_, i) => i !== index));
   };
@@ -544,12 +574,12 @@ const PatientMedicalRecord = () => {
       if (!targetEntryId) {
         throw new Error("Не выбрана запись для привязки назначений");
       }
-
+  
       // Сохраняем все временные назначения
       const savedPrescriptions = await Promise.all(
         tempPrescriptions.map(p => createPrescription(p))
       );
-
+  
       // Создаем связи с записью
       await Promise.all(
         savedPrescriptions.map(p =>
@@ -559,7 +589,10 @@ const PatientMedicalRecord = () => {
           })
         )
       );
-
+  
+      // Обновляем список назначений
+      await loadEntryPrescriptions(targetEntryId);
+      
       // Очищаем временные назначения
       setTempPrescriptions([]);
     } catch (error) {
@@ -703,7 +736,7 @@ const PatientMedicalRecord = () => {
                   <div
                     key={entry.entryid}
                     className={`p-2 mb-1 cursor-pointer rounded ${selectedEntry?.entryid === entry.entryid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-                    onClick={() => setSelectedEntry(entry)}
+                    onClick={() => handleEntrySelect(entry)}
                   >
                     <div className="flex justify-between">
                       <span>{new Date(entry.entrydate).toLocaleDateString()}</span>
@@ -820,24 +853,68 @@ const PatientMedicalRecord = () => {
               </div>
 
               <h3 className="text-lg font-semibold mb-2">Назначения</h3>
-              <div className="mb-4">
+              <div className="mb-4 space-y-3">
+                {/* Временные назначения (если есть) */}
                 {tempPrescriptions.map((prescription, index) => (
-                  <div key={index} className="p-2 mb-2 bg-gray-100 rounded">
-                    <p><strong>Препарат:</strong> {getMedicationName(prescription.medicationid)}</p>
-                    <p><strong>Дозировка:</strong> {prescription.dosage}</p>
-                    <p><strong>Инструкции:</strong> {prescription.instructions}</p>
+                  <div key={`temp-${index}`} className="p-3 bg-gray-100 rounded-md">
+                    <p className="font-medium">
+                      {prescription.medicationName || `Препарат #${prescription.medicationid}`}
+                    </p>
+                    <div className="mt-1 text-sm text-gray-600 space-y-1">
+                      {prescription.dosage && <p>Дозировка: {prescription.dosage}</p>}
+                      {prescription.instructions && <p>Инструкции: {prescription.instructions}</p>}
+                    </div>
                     {prescription.isairecommended && (
-                      <p className="text-sm text-blue-600">Рекомендовано ИИ (уверенность: {prescription.airecommendationscore ? (prescription.airecommendationscore * 100).toFixed(1) + '%' : 'не указана'})</p>
+                      <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                        Рекомендация ИИ ({prescription.airecommendationscore ? `${Math.round(prescription.airecommendationscore * 100)}%` : 'высокая'})
+                      </span>
                     )}
                     <Button
                       onClick={() => handleRemoveTempPrescription(index)}
-                      className="mt-1 bg-red-600 hover:bg-red-700 text-sm"
+                      className="mt-2 bg-red-600 hover:bg-red-700 text-sm"
                     >
                       Удалить
                     </Button>
                   </div>
                 ))}
+
+                {/* Сохраненные назначения */}
+                {entryPrescriptions.map(prescription => (
+                  <div key={prescription.prescriptionid} className="p-3 bg-white border rounded-md">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">
+                          {getMedicationName(prescription.medicationid)}
+                        </p>
+                        <div className="mt-1 text-sm text-gray-600 space-y-1">
+                          <p>Дозировка: {prescription.dosage}</p>
+                          {prescription.instructions && <p>Инструкции: {prescription.instructions}</p>}
+                          <p>Назначил: {prescription.doctorname}</p>
+                        </div>
+                        {prescription.isairecommended && (
+                          <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            Рекомендация ИИ ({prescription.airecommendationscore ? `${Math.round(prescription.airecommendationscore * 100)}%` : 'высокая'})
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        onClick={() => handleDeletePrescription(prescription.prescriptionid)}
+                        className="bg-red-600 hover:bg-red-700 text-sm"
+                      >
+                        Удалить
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                {tempPrescriptions.length === 0 && entryPrescriptions.length === 0 && (
+                  <div className="text-center py-4 text-gray-500">
+                    Нет назначений для этой записи
+                  </div>
+                )}
               </div>
+
+              {/* Кнопки действий */}
               <div className="flex space-x-2">
                 <Button
                   onClick={openPrescriptionModal}
@@ -847,7 +924,7 @@ const PatientMedicalRecord = () => {
                 </Button>
                 {tempPrescriptions.length > 0 && (
                   <Button
-                    onClick={handleSaveAll}
+                    onClick={() => handleSaveAll(selectedEntry.entryid)}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
                     Сохранить все
