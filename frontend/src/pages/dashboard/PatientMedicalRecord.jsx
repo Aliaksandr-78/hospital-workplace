@@ -87,6 +87,8 @@ const PatientMedicalRecord = () => {
   });
   
   const [prescriptionForm, setPrescriptionForm] = useState({
+    patientid: medicalRecord?.patientid || "",
+    doctorid: user?.userid || "",
     medicationid: "",
     dosage: "",
     instructions: "",
@@ -323,7 +325,7 @@ const PatientMedicalRecord = () => {
         doctorid: user.userid,
         ...entryForm
       };
-  
+    
       let savedEntry;
       if (selectedEntry) {
         // Редактирование существующей записи
@@ -339,17 +341,18 @@ const PatientMedicalRecord = () => {
         savedEntry = await createMedicalRecordEntry(entryData);
         setEntries(prev => [...prev, savedEntry]);
       }
-      console.log(savedEntry?.entryid)
+  
       if (!savedEntry?.entryid) {
         throw new Error("Не удалось получить ID созданной записи");
       }
+  
       // 2. Сохраняем все временные назначения и ждем завершения
       const savedPrescriptions = await Promise.all(
         tempPrescriptions.map(async p => {
           const prescription = await createPrescription({
-            patientid: medicalRecord.patientid,
-            doctorid: user.userid,
-            medicationid: p.medicationid,
+            patientid: p.patientid, // Используем patientid из временного назначения
+            doctorid: p.doctorid,    // Используем doctorid из временного назначения
+            medicationid: p.medicationid, // Используем medicationid из временного назначения
             dosage: p.dosage,
             instructions: p.instructions,
             isairecommended: p.isairecommended,
@@ -369,17 +372,10 @@ const PatientMedicalRecord = () => {
       await Promise.all(
         savedPrescriptions.map(async p => {
           try {
-            console.log('Пытаемся создать связь для:', {
-              entryId: savedEntry.entryid,
-              prescrId: p.prescriptionid
-            });
-            
             await createEntryPrescription({
               entryid: savedEntry.entryid,
               prescriptionid: p.prescriptionid
             });
-            
-            console.log('Связь успешно создана');
           } catch (err) {
             console.error('Детали ошибки:', {
               entryId: savedEntry.entryid,
@@ -518,9 +514,15 @@ const PatientMedicalRecord = () => {
       const medication = medications.find(m => String(m.medicationid) === String(prescriptionForm.medicationid));
       
       const newPrescription = {
-        ...prescriptionForm,
-        patientid: medicalRecord.patientid,
-        doctorid: user.userid,
+        patientid: medicalRecord.patientid, // Добавляем patientid
+        doctorid: user.userid, // Добавляем userid (doctorid)
+        medicationid: prescriptionForm.medicationid, // Убедимся, что medicationid передается
+        dosage: prescriptionForm.dosage,
+        instructions: prescriptionForm.instructions,
+        isairecommended: prescriptionForm.isairecommended,
+        airecommendationscore: prescriptionForm.airecommendationscore,
+        aicontraindicationschecked: prescriptionForm.aicontraindicationschecked,
+        rbprotocolcompliant: prescriptionForm.rbprotocolcompliant,
         medicationName: medication ? medication.name : `Препарат #${prescriptionForm.medicationid}`
       };
       

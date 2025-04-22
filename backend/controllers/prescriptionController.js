@@ -4,9 +4,9 @@ const prescriptionController = {
     async create(req, res) {
         try {
             const { 
-                patientID, 
-                doctorID, 
-                medicationID, 
+                patientid, 
+                doctorid, 
+                medicationid, 
                 dosage, 
                 instructions,
                 isAIRecommended,
@@ -24,9 +24,9 @@ const prescriptionController = {
                 RETURNING *;
             `
             const values = [
-                patientID, 
-                doctorID, 
-                medicationID, 
+                patientid, 
+                doctorid, 
+                medicationid, 
                 dosage, 
                 instructions,
                 isAIRecommended || false,
