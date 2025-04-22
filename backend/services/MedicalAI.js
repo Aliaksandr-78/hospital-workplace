@@ -25,13 +25,23 @@ class MedicalAI {
   }
 
   async _loadData() {
-    // Загрузка лекарств
-    const { rows: meds } = await pool.query('SELECT * FROM medications');
-    meds.forEach(m => this.medications.set(m.medicationid, m));
-
-    // Загрузка диагнозов
-    const { rows: diagnoses } = await pool.query('SELECT * FROM diagnoses');
-    diagnoses.forEach(d => this.diagnoses.set(d.diagnosisid, d));
+    try {
+      // Загрузка диагнозов
+      const { rows: diagnoses } = await pool.query('SELECT * FROM diagnoses');
+      console.log(`Загружено диагнозов: ${diagnoses.length}`);
+      
+      if (diagnoses.length === 0) {
+        console.warn('В базе данных нет диагнозов!');
+      }
+      
+      diagnoses.forEach(d => {
+        console.log(`Диагноз ID: ${d.diagnosisid}, Название: ${d.name}`);
+        this.diagnoses.set(d.diagnosisid, d);
+      });
+    } catch (err) {
+      console.error('Ошибка загрузки диагнозов:', err);
+      throw err;
+    }
   }
 
   async _trainModels() {
@@ -130,37 +140,47 @@ class MedicalAI {
   }
 
   async getRecommendations(diagnosisId, patientId = null) {
-    const diagnosis = this.diagnoses.get(diagnosisId);
-    if (!diagnosis) throw new Error('Диагноз не найден');
+    try {
+      const id = Number(diagnosisId);
+  
+      if (!this.diagnoses.has(id)) {
+        console.error(`Диагноз с ID ${id} не найден. Доступные диагнозы:`, 
+          Array.from(this.diagnoses.keys()));
+        throw new Error('Диагноз не найден');
+      };
 
-    const [protocolRecs, bayesRecs, dtRecs, similarRecs] = await Promise.all([
-      this._getProtocolRecs(diagnosisId),
-      this._getBayesRecs(diagnosis.name),
-      patientId && this.decisionTree ? this._getDecisionTreeRecs(diagnosisId, patientId) : [],
-      patientId ? this.similarityEngine.getSimilarRecs(patientId) : []
-    ]);
-
-    const combined = this._combineRecommendations(
-      protocolRecs, 
-      bayesRecs, 
-      dtRecs, 
-      similarRecs
-    );
-
-    const filtered = patientId ? 
-      await this._filterContraindications(combined, patientId) : 
-      combined;
-
-    return {
-      diagnosis: diagnosis.name,
-      recommendations: filtered.slice(0, 10),
-      modelMetrics: {
-        protocol: protocolRecs.length,
-        bayes: bayesRecs.length,
-        decisionTree: dtRecs.length,
-        similarPatients: similarRecs.length
-      }
-    };
+      const diagnosis = this.diagnoses.get(id);
+      // Добавим проверку на наличие данных для моделей
+      const hasBayesData = this.classifier.getClassifications(diagnosis.name).length > 0;
+      const hasDecisionTreeData = this.decisionTree !== null;
+  
+      const [protocolRecs, bayesRecs, dtRecs, similarRecs] = await Promise.all([
+        this._getProtocolRecs(diagnosisId),
+        hasBayesData ? this._getBayesRecs(diagnosis.name) : [],
+        (patientId && hasDecisionTreeData) ? this._getDecisionTreeRecs(diagnosisId, patientId) : [],
+        patientId ? this.similarityEngine.getSimilarRecs(patientId) : []
+      ]);
+  
+      // Остальной код без изменений
+      const combined = this._combineRecommendations(protocolRecs, bayesRecs, dtRecs, similarRecs);
+      const filtered = patientId ? 
+        await this._filterContraindications(combined, patientId) : 
+        combined;
+  
+      return {
+        diagnosis: diagnosis.name,
+        recommendations: filtered.slice(0, 10),
+        modelMetrics: {
+          protocol: protocolRecs.length,
+          bayes: bayesRecs.length,
+          decisionTree: dtRecs.length,
+          similarPatients: similarRecs.length
+        }
+      };
+    } catch (err) {
+      console.error('Ошибка получения рекомендаций:', err);
+      throw err;
+    }
   }
 
   async _getProtocolRecs(diagnosisId) {

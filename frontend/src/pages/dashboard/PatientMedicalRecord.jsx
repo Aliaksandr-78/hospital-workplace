@@ -103,28 +103,28 @@ const PatientMedicalRecord = () => {
 
   // Константы для типов данных
   const FEATURE_TYPES = [
-    { value: "disease", label: "Заболевание" },
-    { value: "condition", label: "Патологическое состояние" },
-    { value: "allergy", label: "Аллергия" },
-    { value: "intolerance", label: "Непереносимость" },
-    { value: "physiological", label: "Физиологическая особенность" },
-    { value: "habit", label: "Привычка" },
-    { value: "psychological", label: "Психологический фактор" }
+    { value: "Заболевание", label: "Заболевание" },
+    { value: "Патологическое состояние", label: "Патологическое состояние" },
+    { value: "Аллергия", label: "Аллергия" },
+    { value: "Непереносимость", label: "Непереносимость" },
+    { value: "Физиологическая особенность", label: "Физиологическая особенность" },
+    { value: "Привычка", label: "Привычка" },
+    { value: "Психологический фактор", label: "Психологический фактор" }
   ];
 
   const ENTRY_TYPES = [
-    { value: "consultation", label: "Консультация" },
-    { value: "examination", label: "Осмотр" },
-    { value: "procedure", label: "Процедура" },
-    { value: "diagnosis", label: "Диагноз" },
-    { value: "treatment", label: "Лечение" }
+    { value: "Консультация", label: "Консультация" },
+    { value: "Осмотр", label: "Осмотр" },
+    { value: "Процедура", label: "Процедура" },
+    { value: "Диагноз", label: "Диагноз" },
+    { value: "Лечение", label: "Лечение" }
   ];
 
   const TEST_STATUSES = [
-    { value: "ordered", label: "Назначен" },
-    { value: "in_progress", label: "В процессе" },
-    { value: "completed", label: "Завершен" },
-    { value: "canceled", label: "Отменен" }
+    { value: "Назначен", label: "Назначен" },
+    { value: "В процессе", label: "В процессе" },
+    { value: "Завершен", label: "Завершен" },
+    { value: "Отменен", label: "Отменен" }
   ];
 
   // Получение специализации врача
