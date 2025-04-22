@@ -5,7 +5,7 @@ import api from "./axiosInstance"
  */
 export const getAllPrescriptions = async () => {
   try {
-    const response = await api.get("prescription/prescriptionAll/")
+    const response = await api.get("prescriptions/prescriptionAll/")
     return response.data
   } catch (error) {
     console.error("Ошибка при загрузке списка рецептов:", error)
@@ -19,7 +19,7 @@ export const getAllPrescriptions = async () => {
  */
 export const getPrescriptionById = async (prescriptionID) => {
   try {
-    const response = await api.get(`prescription/prescriptionId/${prescriptionID}`)
+    const response = await api.get(`prescriptions/prescriptionId/${prescriptionID}`)
     return response.data
   } catch (error) {
     console.error(`Ошибка при загрузке рецепта ID ${prescriptionID}:`, error)
@@ -33,7 +33,7 @@ export const getPrescriptionById = async (prescriptionID) => {
  */
 export const createPrescription = async (prescriptionData) => {
   try {
-    const response = await api.post("prescription/prescriptionCreate/", prescriptionData)
+    const response = await api.post("prescriptions/prescriptionCreate/", prescriptionData)
     return response.data
   } catch (error) {
     console.error("Ошибка при создании рецепта:", error)
@@ -48,7 +48,7 @@ export const createPrescription = async (prescriptionData) => {
  */
 export const updatePrescription = async (prescriptionID, updatedData) => {
   try {
-    const response = await api.put(`prescription/prescriptionUpdate/${prescriptionID}`, updatedData)
+    const response = await api.put(`prescriptions/prescriptionUpdate/${prescriptionID}`, updatedData)
     return response.data
   } catch (error) {
     console.error(`Ошибка при обновлении рецепта ID ${prescriptionID}:`, error)
@@ -62,7 +62,7 @@ export const updatePrescription = async (prescriptionID, updatedData) => {
  */
 export const deletePrescription = async (prescriptionID) => {
   try {
-    const response = await api.delete(`prescription/prescriptionDelete/${prescriptionID}`)
+    const response = await api.delete(`prescriptions/prescriptionDelete/${prescriptionID}`)
     return response.data
   } catch (error) {
     console.error(`Ошибка при удалении рецепта ID ${prescriptionID}:`, error)

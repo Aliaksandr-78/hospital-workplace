@@ -301,12 +301,13 @@ const PatientMedicalRecord = () => {
         ? {
             entrytype: entry.entrytype,
             content: entry.content,
-            diagnosisid: entry.diagnosisid || "",
+            // Не позволяем редактировать диагноз
+            diagnosisid: entry.diagnosisid || ""
           }
         : {
             entrytype: "consultation",
             content: "",
-            diagnosisid: "",
+            diagnosisid: ""
           }
     );
     setEntryModalOpen(true);
@@ -315,6 +316,11 @@ const PatientMedicalRecord = () => {
   const handleEntrySubmit = async (e) => {
     e.preventDefault();
     try {
+      console.log('Отправляемые данные записи:', { // Добавьте это
+        recordid: recordId,
+        doctorid: user.userid,
+        ...entryForm
+      });
       // 1. Сначала сохраняем все временные назначения
       const savedPrescriptions = await Promise.all(
         tempPrescriptions.map(p => 
@@ -335,9 +341,16 @@ const PatientMedicalRecord = () => {
 
       let savedEntry;
       if (selectedEntry) {
-        savedEntry = await updateMedicalRecordEntry(selectedEntry.entryid, entryData);
-        setEntries(prev =>
-          prev.map(e => (e.entryid === savedEntry.entryid ? savedEntry : e))
+        await updateMedicalRecordEntry(selectedEntry.entryid, {
+          content: entryForm.content
+        });
+        // Обновляем состояние
+        setEntries(prev => 
+          prev.map(e => 
+            e.entryid === selectedEntry.entryid 
+              ? { ...e, content: entryForm.content } 
+              : e
+          )
         );
       } else {
         savedEntry = await createMedicalRecordEntry(entryData);
@@ -951,40 +964,77 @@ const PatientMedicalRecord = () => {
           </h2>
           
           <form onSubmit={handleEntrySubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Тип записи"
-                name="entrytype"
-                value={entryForm.entrytype}
-                onChange={(value) => setEntryForm({...entryForm, entrytype: value})}
-                options={ENTRY_TYPES}
-                required
-              />
+            {selectedEntry ? (
+              // Режим редактирования - статическое отображение
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Тип записи
+                  </label>
+                  <div className="p-2 bg-gray-100 rounded">
+                    {ENTRY_TYPES.find(t => t.value === selectedEntry.entrytype)?.label || selectedEntry.entrytype}
+                  </div>
+                </div>
 
-              <Select
-                label="Диагноз"
-                name="diagnosisid"
-                value={entryForm.diagnosisid}
-                onChange={(value) => setEntryForm({...entryForm, diagnosisid: value})}
-                options={diagnoses.map(d => ({
-                  value: d.diagnosisid,
-                  label: `${d.icd10code} - ${d.name}`
-                }))}
-                placeholder="Выберите диагноз"
-                isSearchable
-              />
-            </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Диагноз
+                  </label>
+                  <div className="p-2 bg-gray-100 rounded">
+                    {selectedEntry.diagnosisid 
+                      ? getDiagnosisName(selectedEntry.diagnosisid)
+                      : "Не указан"}
+                  </div>
+                </div>
 
-            <Input
-              label="Содержание"
-              name="content"
-              value={entryForm.content}
-              onChange={(e) => setEntryForm({...entryForm, content: e.target.value})}
-              placeholder="Подробное описание..."
-              multiline
-              rows={4}
-              required
-            />
+                <Input
+                  label="Содержание"
+                  name="content"
+                  value={entryForm.content}
+                  onChange={(e) => setEntryForm({...entryForm, content: e.target.value})}
+                  placeholder="Подробное описание..."
+                  multiline
+                  rows={4}
+                  required
+                />
+              </div>
+            ) : (
+              // Режим создания - обычная форма
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  label="Тип записи"
+                  name="entrytype"
+                  value={entryForm.entrytype}
+                  onChange={(value) => setEntryForm({...entryForm, entrytype: value})}
+                  options={ENTRY_TYPES}
+                  required
+                />
+
+                <Select
+                  label="Диагноз"
+                  name="diagnosisid"
+                  value={entryForm.diagnosisid}
+                  onChange={(value) => setEntryForm({...entryForm, diagnosisid: value})}
+                  options={diagnoses.map(d => ({
+                    value: d.diagnosisid,
+                    label: `${d.icd10code} - ${d.name}`
+                  }))}
+                  placeholder="Выберите диагноз"
+                  isSearchable
+                />
+
+                <Input
+                  label="Содержание"
+                  name="content"
+                  value={entryForm.content}
+                  onChange={(e) => setEntryForm({...entryForm, content: e.target.value})}
+                  placeholder="Подробное описание..."
+                  multiline
+                  rows={4}
+                  required
+                />
+              </div>
+            )}
 
             {/* Секция назначений */}
             <div className="bg-gray-50 p-4 rounded-lg border">

@@ -6,20 +6,40 @@ const medicalRecordEntryController = {
      */
     async create(req, res) {
         try {
-            const { recordID, doctorID, entryType, content, diagnosisID } = req.body;
-            const query = `
-                INSERT INTO MedicalRecordEntries 
-                (RecordID, DoctorID, EntryType, Content, DiagnosisID) 
-                VALUES ($1, $2, $3, $4, $5) 
-                RETURNING *;
-            `;
-            const values = [recordID, doctorID, entryType, content, diagnosisID];
-            const result = await pool.query(query, values);
-            res.status(201).json(result.rows[0]);
+          // Добавьте логирование всего тела запроса
+          console.log('Полное тело запроса:', req.body);
+          
+          // Деструктуризация с альтернативными именами
+          const { 
+            recordid: recordID, 
+            doctorid: doctorID, 
+            entrytype: entryType, 
+            content, 
+            diagnosisid: diagnosisID 
+          } = req.body;
+      
+          // Проверка наличия обязательных полей
+          if (!entryType) {
+            return res.status(400).json({ error: 'EntryType is required' });
+          }
+      
+          const query = `
+            INSERT INTO MedicalRecordEntries 
+            (RecordID, DoctorID, EntryType, Content, DiagnosisID) 
+            VALUES ($1, $2, $3, $4, $5) 
+            RETURNING *;
+          `;
+          const values = [recordID, doctorID, entryType, content, diagnosisID];
+          
+          console.log('Выполняемый запрос:', query, values); // Логирование
+          
+          const result = await pool.query(query, values);
+          res.status(201).json(result.rows[0]);
         } catch (error) {
-            res.status(500).json({ error: error.message });
+          console.error('Полная ошибка:', error); // Подробное логирование
+          res.status(500).json({ error: error.message });
         }
-    },
+      },
 
     /**
      * Получение записи по ID
@@ -71,27 +91,38 @@ const medicalRecordEntryController = {
      */
     async update(req, res) {
         try {
-            const { entryID } = req.params;
-            const { content, diagnosisID } = req.body;
-            
-            const query = `
-                UPDATE MedicalRecordEntries 
-                SET Content = $1, DiagnosisID = $2
-                WHERE EntryID = $3 
-                RETURNING *;
-            `;
-            const values = [content, diagnosisID, entryID];
-            const result = await pool.query(query, values);
-            
-            if (!result.rows.length) {
-                return res.status(404).json({ message: "Запись не найдена" });
-            }
-            
-            res.json(result.rows[0]);
+          const { entryID } = req.params;
+          const { content } = req.body;
+      
+          // Получаем текущую запись из БД
+          const currentEntryQuery = `
+            SELECT DiagnosisID FROM MedicalRecordEntries 
+            WHERE EntryID = $1;
+          `;
+          const currentEntryResult = await pool.query(currentEntryQuery, [entryID]);
+          
+          if (!currentEntryResult.rows.length) {
+            return res.status(404).json({ message: "Запись не найдена" });
+          }
+      
+          const currentDiagnosisID = currentEntryResult.rows[0].diagnosisid;
+      
+          const query = `
+            UPDATE MedicalRecordEntries 
+            SET Content = $1
+            WHERE EntryID = $2 
+            RETURNING *;
+          `;
+          const values = [content, entryID];
+          
+          const result = await pool.query(query, values);
+          
+          res.json(result.rows[0]);
         } catch (error) {
-            res.status(500).json({ error: error.message });
+          console.error('Ошибка при обновлении записи:', error);
+          res.status(500).json({ error: error.message });
         }
-    },
+      },
 
     /**
      * Удаление записи
