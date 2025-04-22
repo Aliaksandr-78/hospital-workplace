@@ -8,7 +8,6 @@ import Dashboard from "./pages/dashboard/Dashboard"
 import Patients from "./pages/dashboard/Patients"
 import Appointments from "./pages/dashboard/Appointments"
 import MedicalRecords from "./pages/dashboard/MedicalRecords"
-import Prescriptions from "./pages/dashboard/Prescriptions"
 import ManageSchedules from "./pages/dashboard/ManageSchedules"
 import MedicalDischarges from "./pages/dashboard/MedicalDischarges"
 import MedicalCertificates from "./pages/dashboard/MedicalCertificates"
@@ -98,14 +97,6 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <MedicalRecords />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/prescriptions"
-              element={
-                <PrivateRoute>
-                  <Prescriptions />
                 </PrivateRoute>
               }
             />

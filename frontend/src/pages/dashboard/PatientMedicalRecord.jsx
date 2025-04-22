@@ -474,11 +474,15 @@ const PatientMedicalRecord = () => {
   const handlePrescriptionSubmit = async (e) => {
     e.preventDefault();
     try {
+      const medication = medications.find(m => String(m.medicationid) === String(prescriptionForm.medicationid));
+      
       const newPrescription = {
         ...prescriptionForm,
         patientid: medicalRecord.patientid,
         doctorid: user.userid,
+        medicationName: medication ? medication.name : `Препарат #${prescriptionForm.medicationid}`
       };
+      
       setTempPrescriptions(prev => [...prev, newPrescription]);
       setPrescriptionModalOpen(false);
     } catch (error) {
@@ -565,10 +569,16 @@ const PatientMedicalRecord = () => {
     return diagnosis ? `${diagnosis.icd10code} - ${diagnosis.name}` : "Неизвестный диагноз";
   };
 
-  const getMedicationName = (medicationId) => {
-    const medication = medications.find(m => m.medicationid === medicationId);
-    return medication ? medication.name : "Неизвестный препарат";
-  };
+  const getMedicationName = useCallback((medicationId) => {
+    if (!medicationId) return "Не указан препарат";
+    
+    // Приводим ID к строке для сравнения, так как из API могут приходить разные типы
+    const medication = medications.find(m => 
+      String(m.medicationid) === String(medicationId)
+    );
+    
+    return medication ? medication.name : `Препарат (ID: ${medicationId})`;
+  }, [medications]);
 
   if (loading) {
     return <Loader className="flex justify-center my-8" />;
@@ -581,7 +591,7 @@ const PatientMedicalRecord = () => {
 
 
 
-  {/* Иконки для кнопок */}
+
   const PlusIcon = (props) => (
     <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -926,163 +936,163 @@ const PatientMedicalRecord = () => {
 
       {/* Модальное окно для записей в карте */}
       <Modal isOpen={isEntryModalOpen} onClose={() => {
-  if (tempPrescriptions.length > 0) {
-    if (window.confirm("Отменить создание записи? Все временные назначения будут удалены.")) {
-      setTempPrescriptions([]); // Очищаем временные назначения
-      setEntryModalOpen(false);
-    }
-  } else {
-    setEntryModalOpen(false);
-  }
-}}>
-  <div className="p-6">
-    <h2 className="text-xl font-semibold mb-4">
-      {selectedEntry ? "Редактировать запись" : "Новая запись"}
-    </h2>
-    
-    <form onSubmit={handleEntrySubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Select
-          label="Тип записи"
-          name="entrytype"
-          value={entryForm.entrytype}
-          onChange={(value) => setEntryForm({...entryForm, entrytype: value})}
-          options={ENTRY_TYPES}
-          required
-        />
+        if (tempPrescriptions.length > 0) {
+          if (window.confirm("Отменить создание записи? Все временные назначения будут удалены.")) {
+            setTempPrescriptions([]); // Очищаем временные назначения
+            setEntryModalOpen(false);
+          }
+        } else {
+          setEntryModalOpen(false);
+        }
+      }}>
+        <div className="p-6">
+          <h2 className="text-xl font-semibold mb-4">
+            {selectedEntry ? "Редактировать запись" : "Новая запись"}
+          </h2>
+          
+          <form onSubmit={handleEntrySubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Тип записи"
+                name="entrytype"
+                value={entryForm.entrytype}
+                onChange={(value) => setEntryForm({...entryForm, entrytype: value})}
+                options={ENTRY_TYPES}
+                required
+              />
 
-        <Select
-          label="Диагноз"
-          name="diagnosisid"
-          value={entryForm.diagnosisid}
-          onChange={(value) => setEntryForm({...entryForm, diagnosisid: value})}
-          options={diagnoses.map(d => ({
-            value: d.diagnosisid,
-            label: `${d.icd10code} - ${d.name}`
-          }))}
-          placeholder="Выберите диагноз"
-          isSearchable
-        />
-      </div>
+              <Select
+                label="Диагноз"
+                name="diagnosisid"
+                value={entryForm.diagnosisid}
+                onChange={(value) => setEntryForm({...entryForm, diagnosisid: value})}
+                options={diagnoses.map(d => ({
+                  value: d.diagnosisid,
+                  label: `${d.icd10code} - ${d.name}`
+                }))}
+                placeholder="Выберите диагноз"
+                isSearchable
+              />
+            </div>
 
-      <Input
-        label="Содержание"
-        name="content"
-        value={entryForm.content}
-        onChange={(e) => setEntryForm({...entryForm, content: e.target.value})}
-        placeholder="Подробное описание..."
-        multiline
-        rows={4}
-        required
-      />
+            <Input
+              label="Содержание"
+              name="content"
+              value={entryForm.content}
+              onChange={(e) => setEntryForm({...entryForm, content: e.target.value})}
+              placeholder="Подробное описание..."
+              multiline
+              rows={4}
+              required
+            />
 
-      {/* Секция назначений */}
-      <div className="bg-gray-50 p-4 rounded-lg border">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-medium">Назначения</h3>
-          <div className="flex space-x-2">
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                setPrescriptionForm({
-                  medicationid: medications.length > 0 ? medications[0].medicationid : "",
-                  dosage: "",
-                  instructions: "",
-                  isairecommended: false
-                });
-                setPrescriptionModalOpen(true);
-              }}
-              icon={<PlusIcon className="h-4 w-4" />}
-            >
-              Добавить
-            </Button>
+            {/* Секция назначений */}
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-medium">Назначения</h3>
+                <div className="flex space-x-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      setPrescriptionForm({
+                        medicationid: medications.length > 0 ? medications[0].medicationid : "",
+                        dosage: "",
+                        instructions: "",
+                        isairecommended: false
+                      });
+                      setPrescriptionModalOpen(true);
+                    }}
+                    icon={<PlusIcon className="h-4 w-4" />}
+                  >
+                    Добавить
+                  </Button>
 
-            {entryForm.diagnosisid && (
+                  {entryForm.diagnosisid && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={getRecommendations}
+                      icon={<LightBulbIcon className="h-4 w-4" />}
+                    >
+                      Рекомендации ИИ
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {tempPrescriptions.length > 0 ? (
+                <div className="space-y-3">
+                  {tempPrescriptions.map((prescription, index) => {
+                    // const medication = medications.find(m => m.medicationid === prescription.medicationid);
+                    return (
+                      <div key={index} className="flex items-start p-3 bg-white rounded-md shadow-xs border">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium">
+                            {prescription.medicationName || `Препарат #${prescription.medicationid}`}
+                          </p>
+                          <div className="mt-1 text-sm text-gray-600 space-y-1">
+                            {prescription.dosage && <p>Дозировка: {prescription.dosage}</p>}
+                            {prescription.instructions && <p>Инструкции: {prescription.instructions}</p>}
+                          </div>
+                          {prescription.isairecommended && (
+                            <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              Рекомендация ИИ ({prescription.airecommendationscore ? `${Math.round(prescription.airecommendationscore * 100)}%` : 'высокая'})
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTempPrescription(index)}
+                          className="ml-2 text-red-500 hover:text-red-700"
+                          aria-label="Удалить назначение"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <DocumentTextIcon className="mx-auto h-10 w-10 text-gray-400" />
+                  <h4 className="mt-2 text-sm font-medium text-gray-900">Нет добавленных назначений</h4>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Добавьте назначения вручную или получите рекомендации ИИ
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-2">
               <Button
                 type="button"
-                size="sm"
                 variant="secondary"
-                onClick={getRecommendations}
-                icon={<LightBulbIcon className="h-4 w-4" />}
+                onClick={() => {
+                  if (tempPrescriptions.length > 0) {
+                    if (window.confirm("Отменить создание записи? Все временные назначения будут удалены.")) {
+                      setTempPrescriptions([]);
+                      setEntryModalOpen(false);
+                    }
+                  } else {
+                    setEntryModalOpen(false);
+                  }
+                }}
               >
-                Рекомендации ИИ
+                Отменить
               </Button>
-            )}
-          </div>
+              <Button 
+                type="submit" 
+                variant="primary"
+                disabled={!entryForm.content}
+              >
+                {selectedEntry ? "Сохранить" : "Создать запись"}
+              </Button>
+            </div>
+          </form>
         </div>
-
-        {tempPrescriptions.length > 0 ? (
-          <div className="space-y-3">
-            {tempPrescriptions.map((prescription, index) => {
-              const medication = medications.find(m => m.medicationid === prescription.medicationid);
-              return (
-                <div key={index} className="flex items-start p-3 bg-white rounded-md shadow-xs border">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium">
-                      {medication ? medication.name : `Препарат #${prescription.medicationid}`}
-                    </p>
-                    <div className="mt-1 text-sm text-gray-600 space-y-1">
-                      {prescription.dosage && <p>Дозировка: {prescription.dosage}</p>}
-                      {prescription.instructions && <p>Инструкции: {prescription.instructions}</p>}
-                    </div>
-                    {prescription.isairecommended && (
-                      <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                        Рекомендация ИИ ({prescription.airecommendationscore ? `${Math.round(prescription.airecommendationscore * 100)}%` : 'высокая'})
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTempPrescription(index)}
-                    className="ml-2 text-red-500 hover:text-red-700"
-                    aria-label="Удалить назначение"
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-6">
-            <DocumentTextIcon className="mx-auto h-10 w-10 text-gray-400" />
-            <h4 className="mt-2 text-sm font-medium text-gray-900">Нет добавленных назначений</h4>
-            <p className="mt-1 text-sm text-gray-500">
-              Добавьте назначения вручную или получите рекомендации ИИ
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="flex justify-end space-x-3 pt-2">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => {
-            if (tempPrescriptions.length > 0) {
-              if (window.confirm("Отменить создание записи? Все временные назначения будут удалены.")) {
-                setTempPrescriptions([]);
-                setEntryModalOpen(false);
-              }
-            } else {
-              setEntryModalOpen(false);
-            }
-          }}
-        >
-          Отменить
-        </Button>
-        <Button 
-          type="submit" 
-          variant="primary"
-          disabled={!entryForm.content}
-        >
-          {selectedEntry ? "Сохранить" : "Создать запись"}
-        </Button>
-      </div>
-    </form>
-  </div>
-</Modal>
+      </Modal>
 
       {/* Модальное окно для лабораторных тестов */}
       <Modal isOpen={isLabTestModalOpen} onClose={() => setLabTestModalOpen(false)}>
@@ -1181,7 +1191,14 @@ const PatientMedicalRecord = () => {
               <Select
                 name="medicationid"
                 value={prescriptionForm.medicationid}
-                onChange={(value) => setPrescriptionForm({...prescriptionForm, medicationid: value})}
+                onChange={(value) => {
+                  const selectedMed = medications.find(m => String(m.medicationid) === String(value));
+                  setPrescriptionForm({
+                    ...prescriptionForm,
+                    medicationid: value,
+                    medicationName: selectedMed ? selectedMed.name : ''
+                  });
+                }}
                 options={medications.map(m => ({
                   value: m.medicationid,
                   label: m.name
