@@ -8,6 +8,7 @@ const recordEntryPrescriptionsController = {
      */
     async create(req, res) {
         try {
+            console.log('Полученные данные:', req.body, ' В recordEntryPrescriptionsController')
             const { EntryID, PrescriptionID } = req.body;
 
             // Проверка существования записи и назначения

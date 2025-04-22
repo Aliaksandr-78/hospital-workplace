@@ -5,10 +5,7 @@ const medicalRecordEntryController = {
      * Создание новой записи в медицинской карте
      */
     async create(req, res) {
-        try {
-          // Добавьте логирование всего тела запроса
-          console.log('Полное тело запроса:', req.body);
-          
+        try {          
           // Деструктуризация с альтернативными именами
           const { 
             recordid: recordID, 
@@ -30,10 +27,9 @@ const medicalRecordEntryController = {
             RETURNING *;
           `;
           const values = [recordID, doctorID, entryType, content, diagnosisID];
-          
-          console.log('Выполняемый запрос:', query, values); // Логирование
-          
+                    
           const result = await pool.query(query, values);
+          console.log('Создана запись с ID:', result.rows[0]?.entryid, ' в medicalRecordEntryController');
           res.status(201).json(result.rows[0]);
         } catch (error) {
           console.error('Полная ошибка:', error); // Подробное логирование

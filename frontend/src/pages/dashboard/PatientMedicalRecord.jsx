@@ -315,64 +315,92 @@ const PatientMedicalRecord = () => {
 
   const handleEntrySubmit = async (e) => {
     e.preventDefault();
+    setError("");
     try {
-      console.log('Отправляемые данные записи:', { // Добавьте это
-        recordid: recordId,
-        doctorid: user.userid,
-        ...entryForm
-      });
-      // 1. Сначала сохраняем все временные назначения
-      const savedPrescriptions = await Promise.all(
-        tempPrescriptions.map(p => 
-          createPrescription({
-            ...p,
-            patientid: medicalRecord.patientid,
-            doctorid: user.userid
-          })
-        )
-      );
-
-      // 2. Затем сохраняем запись
+      // 1. Сначала сохраняем запись в медицинской карте
       const entryData = {
         recordid: recordId,
         doctorid: user.userid,
         ...entryForm
       };
-
+  
       let savedEntry;
       if (selectedEntry) {
-        await updateMedicalRecordEntry(selectedEntry.entryid, {
+        // Редактирование существующей записи
+        const updatedEntry = await updateMedicalRecordEntry(selectedEntry.entryid, {
           content: entryForm.content
         });
-        // Обновляем состояние
+        savedEntry = updatedEntry;
         setEntries(prev => 
-          prev.map(e => 
-            e.entryid === selectedEntry.entryid 
-              ? { ...e, content: entryForm.content } 
-              : e
-          )
+          prev.map(e => e.entryid === selectedEntry.entryid ? updatedEntry : e)
         );
       } else {
+        // Создание новой записи
         savedEntry = await createMedicalRecordEntry(entryData);
         setEntries(prev => [...prev, savedEntry]);
       }
-
+      console.log(savedEntry?.entryid)
+      if (!savedEntry?.entryid) {
+        throw new Error("Не удалось получить ID созданной записи");
+      }
+      // 2. Сохраняем все временные назначения и ждем завершения
+      const savedPrescriptions = await Promise.all(
+        tempPrescriptions.map(async p => {
+          const prescription = await createPrescription({
+            patientid: medicalRecord.patientid,
+            doctorid: user.userid,
+            medicationid: p.medicationid,
+            dosage: p.dosage,
+            instructions: p.instructions,
+            isairecommended: p.isairecommended,
+            airecommendationscore: p.airecommendationscore,
+            aicontraindicationschecked: p.aicontraindicationschecked,
+            rbprotocolcompliant: p.rbprotocolcompliant
+          });
+          
+          if (!prescription?.prescriptionid) {
+            throw new Error("Не удалось получить ID созданного назначения");
+          }
+          return prescription;
+        })
+      );
+  
       // 3. Создаем связи между записью и назначениями
       await Promise.all(
-        savedPrescriptions.map(p =>
-          createEntryPrescription({
-            entryid: savedEntry.entryid,
-            prescriptionid: p.prescriptionid
-          })
-        )
+        savedPrescriptions.map(async p => {
+          try {
+            console.log('Пытаемся создать связь для:', {
+              entryId: savedEntry.entryid,
+              prescrId: p.prescriptionid
+            });
+            
+            await createEntryPrescription({
+              entryid: savedEntry.entryid,
+              prescriptionid: p.prescriptionid
+            });
+            
+            console.log('Связь успешно создана');
+          } catch (err) {
+            console.error('Детали ошибки:', {
+              entryId: savedEntry.entryid,
+              prescrId: p.prescriptionid,
+              error: err.message
+            });
+            throw new Error(`Не удалось создать связь для назначения ${p.prescriptionid}: ${err.message}`);
+          }
+        })
       );
-
+  
       // Очищаем временные назначения
       setTempPrescriptions([]);
       setEntryModalOpen(false);
+      
     } catch (error) {
-      console.error("Ошибка при сохранении записи:", error);
-      setError("Не удалось сохранить запись в карте.");
+      console.error("Полная ошибка при сохранении:", {
+        error: error.message,
+        stack: error.stack
+      });
+      setError(error.message || "Не удалось сохранить данные. Пожалуйста, попробуйте снова.");
     }
   };
 

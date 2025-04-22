@@ -27,15 +27,12 @@ class MedicalAI {
   async _loadData() {
     try {
       // Загрузка диагнозов
-      const { rows: diagnoses } = await pool.query('SELECT * FROM diagnoses');
-      console.log(`Загружено диагнозов: ${diagnoses.length}`);
-      
+      const { rows: diagnoses } = await pool.query('SELECT * FROM diagnoses');      
       if (diagnoses.length === 0) {
         console.warn('В базе данных нет диагнозов!');
       }
       
       diagnoses.forEach(d => {
-        console.log(`Диагноз ID: ${d.diagnosisid}, Название: ${d.name}`);
         this.diagnoses.set(d.diagnosisid, d);
       });
     } catch (err) {

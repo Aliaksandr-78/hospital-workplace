@@ -7,13 +7,29 @@ import api from "./axiosInstance";
  * @param {number} data.PrescriptionID - ID назначения
  * @returns {Promise<Object>} - Созданная связь
  */
-export const createEntryPrescription = async ({ EntryID, PrescriptionID }) => {
+export const createEntryPrescription = async ({ entryid, prescriptionid }) => {
   try {
-    const response = await api.post('record-entry-prescriptions/recordEntryPrescriptionsCreate/', { EntryID, PrescriptionID });
+    // Явно формируем объект с правильными именами полей
+    const requestData = {
+      EntryID: entryid,
+      PrescriptionID: prescriptionid
+    };
+    
+    console.log('Отправляемые данные связи:', requestData); // Логирование
+    
+    const response = await api.post('record-entry-prescriptions/recordEntryPrescriptionsCreate/', requestData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
     return response.data;
   } catch (error) {
-    console.error('Ошибка при создании связи:', error);
-    throw new Error(error.response?.data?.error || 'Не удалось создать связь');
+    console.error('Ошибка при создании связи:', {
+      requestData: { entryid, prescriptionid },
+      response: error.response?.data
+    });
+    throw error;
   }
 };
 
