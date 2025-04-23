@@ -16,10 +16,10 @@ const ConsentForms = () => {
   const [error, setError] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({
-    PatientID: "",
-    Procedure: "",
-    Date: "",
-    Details: "",
+    patientid: "",
+    procedure: "",
+    date: "",
+    details: "",
   })
 
   useEffect(() => {
@@ -53,7 +53,7 @@ const ConsentForms = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      if (!formData.PatientID || !formData.Procedure || !formData.Date) {
+      if (!formData.patientid || !formData.procedure || !formData.date) {
         setError("Все обязательные поля должны быть заполнены")
         return
       }
@@ -81,10 +81,10 @@ const ConsentForms = () => {
   const handleCancel = () => {
     setIsModalOpen(false)
     setFormData({
-      PatientID: "",
-      Procedure: "",
-      Date: "",
-      Details: "",
+      patientid: "",
+      procedure: "",
+      date: "",
+      details: "",
     })
     setError("")
   }
@@ -153,7 +153,7 @@ const ConsentForms = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
                 label="Пациент"
-                name="PatientID"
+                name="patientid"
                 value={formData.PatientID}
                 onChange={handleInputChange}
                 type="select"
@@ -168,7 +168,7 @@ const ConsentForms = () => {
               </Input>
               <Input
                 label="Процедура"
-                name="Procedure"
+                name="procedure"
                 value={formData.Procedure}
                 onChange={handleInputChange}
                 type="text"
@@ -176,7 +176,7 @@ const ConsentForms = () => {
               />
               <Input
                 label="Дата"
-                name="Date"
+                name="date"
                 value={formData.Date}
                 onChange={handleInputChange}
                 type="date"
@@ -184,7 +184,7 @@ const ConsentForms = () => {
               />
               <Input
                 label="Детали"
-                name="Details"
+                name="details"
                 value={formData.Details}
                 onChange={handleInputChange}
                 type="text"

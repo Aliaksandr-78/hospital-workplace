@@ -987,9 +987,6 @@ const PatientMedicalRecord = () => {
           </h2>
           <form onSubmit={handleFeatureSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Тип особенности <span className="text-red-500">*</span>
-              </label>
               <Select
                 label="Тип особенности"
                 name="featuretype"
@@ -1282,7 +1279,7 @@ const PatientMedicalRecord = () => {
               required
             />
 
-            {(labTestForm.status === "completed" || selectedLabTest?.status === "completed") && (
+            {(labTestForm.status === "Завершен" || selectedLabTest?.status === "Завершен") && (
               <>
                 <Input
                   label="Дата результата"

@@ -3,12 +3,12 @@ const { pool } = require('../config/db')
 const consentFormController = {
     async create(req, res) {
         try {
-            const { patientID, procedure, date, details } = req.body
+            const { patientid, procedure, date, details } = req.body
             const query = `
                 INSERT INTO ConsentForms (PatientID, Procedure, Date, Details) 
                 VALUES ($1, $2, $3, $4) RETURNING *;
             `
-            const values = [patientID, procedure, date, details]
+            const values = [patientid, procedure, date, details]
             const result = await pool.query(query, values)
             res.status(201).json(result.rows[0])
         } catch (error) {

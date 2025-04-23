@@ -3,12 +3,12 @@ const { pool } = require('../config/db')
 const medicalRecordController = {
     async create(req, res) {
         try {
-            const { patientID } = req.body
+            const { PatientID } = req.body
             const query = `
                 INSERT INTO MedicalRecords (PatientID) 
                 VALUES ($1) RETURNING *;
             `
-            const values = [patientID]
+            const values = [PatientID]
             const result = await pool.query(query, values)
             res.status(201).json(result.rows[0])
         } catch (error) {

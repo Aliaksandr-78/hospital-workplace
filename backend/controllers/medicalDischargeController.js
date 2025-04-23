@@ -3,12 +3,12 @@ const { pool } = require('../config/db')
 const medicalDischargeController = {
     async create(req, res) {
         try {
-            const { patientID, doctorID, dischargeDate, summary } = req.body
+            const { PatientID, DoctorID, DischargeDate, Summary } = req.body
             const query = `
                 INSERT INTO MedicalDischarges (PatientID, DoctorID, DischargeDate, Summary) 
                 VALUES ($1, $2, $3, $4) RETURNING *;
             `
-            const values = [patientID, doctorID, dischargeDate, summary]
+            const values = [PatientID, DoctorID, DischargeDate, Summary]
             const result = await pool.query(query, values)
             res.status(201).json(result.rows[0])
         } catch (error) {
@@ -43,13 +43,13 @@ const medicalDischargeController = {
     async update(req, res) {
         try {
             const { dischargeID } = req.params
-            const { patientID, doctorID, dischargeDate, summary } = req.body
+            const { PatientID, DoctorID, DischargeDate, Summary } = req.body
             const query = `
                 UPDATE MedicalDischarges 
                 SET PatientID = $1, DoctorID = $2, DischargeDate = $3, Summary = $4 
                 WHERE DischargeID = $5 RETURNING *;
             `
-            const values = [patientID, doctorID, dischargeDate, summary, dischargeID]
+            const values = [PatientID, DoctorID, DischargeDate, Summary, dischargeID]
             const result = await pool.query(query, values)
             if (!result.rows.length) {
                 return res.status(404).json({ message: "Medical discharge not found" })

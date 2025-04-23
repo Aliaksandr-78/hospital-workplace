@@ -56,15 +56,26 @@ const MedicalDischarges = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      if (!formData.PatientID || !formData.DoctorID || !formData.DischargeDate) {
+        alert('Пожалуйста, заполните все обязательные поля')
+        return
+      }
+      
+      const dataToSend = {
+        ...formData,
+        DischargeDate: new Date(formData.DischargeDate).toISOString() // Преобразуем дату
+      }
+      
       if (currentDischarge) {
-        await updateMedicalDischarge(currentDischarge.dischargeid, formData)
+        await updateMedicalDischarge(currentDischarge.dischargeid, dataToSend)
       } else {
-        await createMedicalDischarge(formData)
+        await createMedicalDischarge(dataToSend)
       }
       setIsModalOpen(false)
       fetchData()
     } catch (error) {
       console.error("Ошибка при сохранении выписки:", error)
+      alert(`Ошибка при сохранении: ${error.response?.data?.error || error.message}`)
     }
   }
 

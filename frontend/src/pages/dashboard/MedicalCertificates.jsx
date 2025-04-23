@@ -9,25 +9,25 @@ import Input from "../../components/Input"
 import Modal from "../../components/Modal"
 
 const MedicalCertificates = () => {
-  const { user } = useAuth()
+  const { user } = useAuth() // Получаем данные пользователя
   const [loading, setLoading] = useState(false)
   const [medicalCertificates, setMedicalCertificates] = useState([])
   const [patients, setPatients] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentCertificate, setCurrentCertificate] = useState(null)
   const [formData, setFormData] = useState({
-    PatientID: "",
-    IssuedBy: user?.UserID || "",
-    IssuedDate: "",
-    CertificateType: "",
-    Details: "",
+    patientID: "",
+    issuedBy: user?.userid || "", // Используем userid из контекста
+    issuedDate: "",
+    certificateType: "",
+    details: "",
   })
 
   useEffect(() => {
     if (user) {
       fetchData()
     }
-  }, [user])
+  }, [user]) // Добавляем user в зависимости
 
   const fetchData = async () => {
     setLoading(true)
@@ -53,15 +53,36 @@ const MedicalCertificates = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      // Проверка обязательных полей
+      if (!formData.patientID || !formData.issuedDate || !formData.certificateType) {
+        alert('Пожалуйста, заполните все обязательные поля')
+        return
+      }
+
+      // Проверка, что пользователь авторизован
+      if (!user?.userid) {
+        alert('Ошибка авторизации. Пожалуйста, войдите снова.')
+        return
+      }
+
+      const certificateData = {
+        patientID: Number(formData.patientID),
+        issuedBy: Number(user.userid), // Используем userid из контекста
+        issuedDate: formData.issuedDate,
+        certificateType: formData.certificateType,
+        details: formData.details || null
+      }
+
       if (currentCertificate) {
-        await updateMedicalCertificate(currentCertificate.certificateid, formData)
+        await updateMedicalCertificate(currentCertificate.certificateid, certificateData)
       } else {
-        await createMedicalCertificate(formData)
+        await createMedicalCertificate(certificateData)
       }
       setIsModalOpen(false)
       fetchData()
     } catch (error) {
       console.error("Ошибка при сохранении справки:", error)
+      alert(`Ошибка при сохранении: ${error.response?.data?.error || error.message}`)
     }
   }
 
@@ -70,11 +91,11 @@ const MedicalCertificates = () => {
       const certificate = await getMedicalCertificateById(certificateID)
       setCurrentCertificate(certificate)
       setFormData({
-        PatientID: certificate.patientid,
-        IssuedBy: certificate.issuedby,
-        IssuedDate: certificate.issueddate.split('T')[0],
-        CertificateType: certificate.certificatetype,
-        Details: certificate.details,
+        patientID: certificate.patientid.toString(),
+        issuedBy: user?.userid || "", // Используем userid из контекста
+        issuedDate: certificate.issueddate.split('T')[0],
+        certificateType: certificate.certificatetype,
+        details: certificate.details || "",
       })
       setIsModalOpen(true)
     } catch (error) {
@@ -92,14 +113,14 @@ const MedicalCertificates = () => {
   }
 
   const handleCancel = () => {
-    setIsModalOpen(false);
-    setCurrentCertificate(null);
+    setIsModalOpen(false)
+    setCurrentCertificate(null)
     setFormData({
-      PatientID: "",
-      IssuedBy: user?.UserID || "",
-      IssuedDate: "",
-      CertificateType: "",
-      Details: "",
+      patientID: "",
+      issuedBy: user?.userid || "", // Используем userid из контекста
+      issuedDate: "",
+      certificateType: "",
+      details: "",
     })
   }
 
@@ -176,10 +197,11 @@ const MedicalCertificates = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
                 label="Пациент"
-                name="PatientID"
-                value={formData.PatientID}
+                name="patientID"
+                value={formData.patientID}
                 onChange={handleInputChange}
                 type="select"
+                required
               >
                 <option value="">Выберите пациента</option>
                 {patients.map((patient) => (
@@ -190,22 +212,24 @@ const MedicalCertificates = () => {
               </Input>
               <Input
                 label="Дата выдачи"
-                name="IssuedDate"
-                value={formData.IssuedDate}
+                name="issuedDate"
+                value={formData.issuedDate}
                 onChange={handleInputChange}
                 type="date"
+                required
               />
               <Input
                 label="Тип справки"
-                name="CertificateType"
-                value={formData.CertificateType}
+                name="certificateType"
+                value={formData.certificateType}
                 onChange={handleInputChange}
                 type="text"
+                required
               />
               <Input
                 label="Детали"
-                name="Details"
-                value={formData.Details}
+                name="details"
+                value={formData.details}
                 onChange={handleInputChange}
                 type="text"
               />

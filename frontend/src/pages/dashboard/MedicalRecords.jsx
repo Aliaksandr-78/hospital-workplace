@@ -56,7 +56,7 @@ const MedicalRecords = () => {
         setError("Необходимо выбрать пациента")
         return
       }
-
+      
       await createMedicalRecord(formData)
       setIsModalOpen(false)
       fetchData()
