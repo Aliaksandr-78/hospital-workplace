@@ -477,7 +477,7 @@ const PatientMedicalRecord = () => {
         performedBy: (labTestForm.resultvalue && labTestForm.resultvalue.trim() !== "") 
           ? user?.userid 
           : null,
-        ...(labTestForm.status === "completed" && {
+        ...(labTestForm.status === "Завершен" && {
           resultDate: labTestForm.resultdate || new Date().toISOString()
         })
       };
