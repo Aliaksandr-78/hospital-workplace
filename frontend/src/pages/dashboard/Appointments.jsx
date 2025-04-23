@@ -189,6 +189,7 @@ const Appointments = () => {
   };
 
   const handleEdit = (appointment) => {
+    console.log("Editing appointment:", appointment);
     const patient = patients.find((p) => p.patientid === appointment.patientid);
     const doctor = doctors.find((d) => d.userid === appointment.doctorid);
   
@@ -198,8 +199,8 @@ const Appointments = () => {
     setFormData({
       patientid: appointment.patientid,
       doctorid: appointment.doctorid,
-      date: appointment.date,
-      time: appointment.time,
+      date: new Date(appointment.date).toLocaleDateString('en-CA'),
+      time: appointment.time.slice(0, 5),
       reason: appointment.reason,
     });
     setIsModalOpen(true);

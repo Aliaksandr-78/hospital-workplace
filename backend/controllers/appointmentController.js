@@ -46,13 +46,13 @@ const appointmentController = {
     async update(req, res) {
         try {
             const { appointmentID } = req.params;
-            const { patientID, doctorID, date, time, reason } = req.body;
+            const { patientid, doctorid, date, time, reason } = req.body;
             const query = `
                 UPDATE Appointments
                 SET patientID = $2, doctorID = $3, date = $4, time = $5, reason = $6
                 WHERE appointmentID = $1 RETURNING *;
             `;
-            const values = [appointmentID, patientID, doctorID, date, time, reason];
+            const values = [appointmentID, patientid, doctorid, date, time, reason];
             const result = await pool.query(query, values);
             if (!result.rows.length) {
                 return res.status(404).json({ message: "Appointment not found" });
