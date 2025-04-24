@@ -390,51 +390,46 @@ const ManageMedications = () => {
               <Input
                 label="Описание и фармакологическая группа"
                 name="Description"
+                type="textarea"
                 value={formData.Description}
                 onChange={handleInputChange}
                 placeholder="Введите описание"
-                multiline
-                rows={3}
               />
 
               <Input
                 label="Рекомендации по дозировке"
                 name="DosageRecommendations"
+                type="textarea"
                 value={formData.DosageRecommendations}
                 onChange={handleInputChange}
                 placeholder="Введите рекомендации по дозировке"
-                multiline
-                rows={3}
               />
 
               <Input
                 label="Противопоказания"
                 name="Contraindications"
+                type="textarea"
                 value={formData.Contraindications}
                 onChange={handleInputChange}
                 placeholder="Введите противопоказания"
-                multiline
-                rows={3}
               />
 
               <Input
                 label="Побочные эффекты"
                 name="SideEffects"
+                type="textarea"
                 value={formData.SideEffects}
                 onChange={handleInputChange}
                 placeholder="Введите возможные побочные эффекты"
-                multiline
-                rows={3}
               />
 
               <Input
                 label="Взаимодействия с другими препаратами"
                 name="Interactions"
+                type="textarea"
                 value={formData.Interactions}
                 onChange={handleInputChange}
                 placeholder="Введите информацию о взаимодействиях"
-                multiline
-                rows={3}
               />
 
               <div className="flex justify-end space-x-4 pt-4">
@@ -599,11 +594,10 @@ const ManageMedications = () => {
               <Input
                 label="Описание"
                 name="Description"
+                type="textarea"
                 value={contraindicationFormData.Description}
                 onChange={handleContraindicationInputChange}
                 placeholder="Подробное описание"
-                multiline
-                rows={3}
               />
 
               <Input

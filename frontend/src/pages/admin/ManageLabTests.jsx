@@ -187,7 +187,6 @@ const ManageLabTests = () => {
                 onChange={handleInputChange}
                 placeholder="Введите методику выполнения"
                 required
-                multiline
               />
               <Input
                 label="Стоимость"

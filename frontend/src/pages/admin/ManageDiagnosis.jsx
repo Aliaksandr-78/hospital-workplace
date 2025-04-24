@@ -350,31 +350,28 @@ const ManageDiagnosis = () => {
               <Input
                 label="Описание диагноза"
                 name="Description"
+                type="textarea"
                 value={formData.Description}
                 onChange={handleInputChange}
                 placeholder="Подробное описание диагноза"
-                multiline
-                rows={3}
               />
 
               <Input
                 label="Характерные симптомы"
                 name="Symptoms"
+                type="textarea"
                 value={formData.Symptoms}
                 onChange={handleInputChange}
                 placeholder="Основные симптомы и клинические проявления"
-                multiline
-                rows={3}
               />
 
               <Input
                 label="Клинические протоколы РБ"
                 name="RBClinicalGuidelines"
+                type="textarea"
                 value={formData.RBClinicalGuidelines}
                 onChange={handleInputChange}
                 placeholder="Ссылки на клинические протоколы Республики Беларусь"
-                multiline
-                rows={2}
               />
 
               <div className="flex justify-end space-x-4 pt-4">

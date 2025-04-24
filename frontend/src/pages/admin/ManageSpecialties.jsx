@@ -181,11 +181,11 @@ const ManageSpecialties = () => {
               <Input
                 label="Описание"
                 name="Description"
+                type="textarea"
                 value={formData.Description}
                 onChange={handleInputChange}
                 placeholder="Введите описание"
                 required
-                multiline
               />
               <div className="flex justify-end space-x-4">
                 <Button

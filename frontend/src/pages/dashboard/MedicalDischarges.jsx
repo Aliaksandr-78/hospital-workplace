@@ -226,7 +226,7 @@ const MedicalDischarges = () => {
                 name="Summary"
                 value={formData.Summary}
                 onChange={handleInputChange}
-                type="text"
+                type="textarea"
               />
               <div className="flex justify-end space-x-4">
                 <Button 

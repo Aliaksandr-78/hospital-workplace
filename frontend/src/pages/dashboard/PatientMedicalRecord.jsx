@@ -1094,11 +1094,10 @@ const PatientMedicalRecord = () => {
                 <Input
                   label="Содержание"
                   name="content"
+                  type="textarea"
                   value={entryForm.content}
                   onChange={(e) => setEntryForm({...entryForm, content: e.target.value})}
                   placeholder="Подробное описание..."
-                  multiline
-                  rows={4}
                   required
                 />
               </div>
@@ -1130,11 +1129,10 @@ const PatientMedicalRecord = () => {
                 <Input
                   label="Содержание"
                   name="content"
+                  type="textarea"
                   value={entryForm.content}
                   onChange={(e) => setEntryForm({...entryForm, content: e.target.value})}
                   placeholder="Подробное описание..."
-                  multiline
-                  rows={4}
                   required
                 />
               </div>
@@ -1179,7 +1177,6 @@ const PatientMedicalRecord = () => {
               {tempPrescriptions.length > 0 ? (
                 <div className="space-y-3">
                   {tempPrescriptions.map((prescription, index) => {
-                    // const medication = medications.find(m => m.medicationid === prescription.medicationid);
                     return (
                       <div key={index} className="flex items-start p-3 bg-white rounded-md shadow-xs border">
                         <div className="flex-1 min-w-0">
@@ -1292,15 +1289,17 @@ const PatientMedicalRecord = () => {
                 <Input
                   label="Результат"
                   name="resultvalue"
+                  type="textarea"
                   value={labTestForm.resultvalue}
                   onChange={(e) => setLabTestForm({...labTestForm, resultvalue: e.target.value})}
                   placeholder="Значение результата"
-                  required={labTestForm.status === "completed"}
+                  required={labTestForm.status === "Завершен"}
                 />
                 
                 <Input
                   label="Референсные значения"
                   name="referencerange"
+                  type="textarea"
                   value={labTestForm.referencerange}
                   onChange={(e) => setLabTestForm({...labTestForm, referencerange: e.target.value})}
                   placeholder="Нормальные значения"
@@ -1309,6 +1308,7 @@ const PatientMedicalRecord = () => {
                 <Input
                   label="Интерпретация"
                   name="interpretation"
+                  type="textarea"
                   value={labTestForm.interpretation}
                   onChange={(e) => setLabTestForm({...labTestForm, interpretation: e.target.value})}
                   placeholder="Интерпретация результата"
