@@ -15,8 +15,11 @@ const Appointments = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [appointments, setAppointments] = useState([]);
+  const [filteredAppointments, setFilteredAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
+  const [filteredPatients, setFilteredPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [filteredDoctors, setFilteredDoctors] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [specialties, setSpecialties] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,11 +38,37 @@ const Appointments = () => {
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
   const [isDoctorAvailable, setIsDoctorAvailable] = useState(false);
 
+  // Состояния для поиска и сортировки
+  const [patientSearch, setPatientSearch] = useState("");
+  const [doctorSearch, setDoctorSearch] = useState("");
+  const [dateSearch, setDateSearch] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [patientModalSearch, setPatientModalSearch] = useState("");
+  const [doctorModalSearch, setDoctorModalSearch] = useState("");
+  const [patientSortConfig, setPatientSortConfig] = useState({ key: null, direction: 'asc' });
+  const [doctorSortConfig, setDoctorSortConfig] = useState({ key: null, direction: 'asc' });
+
   useEffect(() => {
     if (user) {
       fetchData();
     }
   }, [user]);
+
+  useEffect(() => {
+    filterAndSortAppointments();
+  }, [appointments, patientSearch, doctorSearch, dateSearch, sortConfig]);
+
+  useEffect(() => {
+    if (patients.length > 0) {
+      filterAndSortPatients();
+    }
+  }, [patients, patientModalSearch, patientSortConfig]);
+
+  useEffect(() => {
+    if (doctors.length > 0) {
+      filterAndSortDoctors();
+    }
+  }, [doctors, doctorModalSearch, doctorSortConfig]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -59,7 +88,9 @@ const Appointments = () => {
 
       setAppointments(appointmentsData);
       setPatients(patientsData);
+      setFilteredPatients(patientsData);
       setDoctors(availableDoctors);
+      setFilteredDoctors(availableDoctors);
       setSchedules(schedulesData);
       setSpecialties(specialtiesData);
     } catch (error) {
@@ -67,6 +98,189 @@ const Appointments = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterAndSortAppointments = () => {
+    let result = [...appointments];
+    
+    // Фильтрация по пациенту
+    if (patientSearch) {
+      const searchLower = patientSearch.toLowerCase();
+      result = result.filter(appointment => {
+        const patient = patients.find(p => p.patientid === appointment.patientid);
+        if (!patient) return false;
+        return (
+          patient.lastname.toLowerCase().includes(searchLower) ||
+          patient.firstname.toLowerCase().includes(searchLower) ||
+          patient.middlename?.toLowerCase().includes(searchLower)
+      )});
+    }
+    
+    // Фильтрация по врачу
+    if (doctorSearch) {
+      const searchLower = doctorSearch.toLowerCase();
+      result = result.filter(appointment => {
+        const doctor = doctors.find(d => d.userid === appointment.doctorid);
+        if (!doctor) return false;
+        return (
+          doctor.lastname.toLowerCase().includes(searchLower) ||
+          doctor.firstname.toLowerCase().includes(searchLower) ||
+          doctor.middlename?.toLowerCase().includes(searchLower)
+      )});
+    }
+    
+    // Фильтрация по дате
+    if (dateSearch) {
+      const searchDate = new Date(dateSearch).toISOString().split('T')[0];
+      result = result.filter(appointment => 
+        new Date(appointment.date).toISOString().split('T')[0] === searchDate
+      );
+    }
+    
+    // Сортировка
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        let valueA, valueB;
+        
+        if (sortConfig.key === 'patient') {
+          const patientA = patients.find(p => p.patientid === a.patientid);
+          const patientB = patients.find(p => p.patientid === b.patientid);
+          valueA = patientA ? `${patientA.lastname} ${patientA.firstname} ${patientA.middlename || ''}` : '';
+          valueB = patientB ? `${patientB.lastname} ${patientB.firstname} ${patientB.middlename || ''}` : '';
+        } else if (sortConfig.key === 'doctor') {
+          const doctorA = doctors.find(d => d.userid === a.doctorid);
+          const doctorB = doctors.find(d => d.userid === b.doctorid);
+          valueA = doctorA ? `${doctorA.lastname} ${doctorA.firstname} ${doctorA.middlename || ''}` : '';
+          valueB = doctorB ? `${doctorB.lastname} ${doctorB.firstname} ${doctorB.middlename || ''}` : '';
+        } else if (sortConfig.key === 'date') {
+          valueA = new Date(a.date);
+          valueB = new Date(b.date);
+        } else {
+          valueA = a[sortConfig.key];
+          valueB = b[sortConfig.key];
+        }
+        
+        if (valueA < valueB) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    
+    setFilteredAppointments(result);
+  };
+
+  const filterAndSortPatients = () => {
+    let result = [...patients];
+    
+    // Фильтрация пациентов
+    if (patientModalSearch) {
+      const searchLower = patientModalSearch.toLowerCase();
+      result = result.filter(patient => 
+        `${patient.lastname} ${patient.firstname} ${patient.middlename || ''}`
+          .toLowerCase()
+          .includes(searchLower))
+    }
+    
+    // Сортировка пациентов
+    if (patientSortConfig.key) {
+      result.sort((a, b) => {
+        let valueA, valueB;
+        
+        if (patientSortConfig.key === 'name') {
+          valueA = `${a.lastname} ${a.firstname} ${a.middlename || ''}`;
+          valueB = `${b.lastname} ${b.firstname} ${b.middlename || ''}`;
+        } else {
+          valueA = a[patientSortConfig.key];
+          valueB = b[patientSortConfig.key];
+        }
+        
+        if (valueA < valueB) {
+          return patientSortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return patientSortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    
+    setFilteredPatients(result);
+  };
+
+  const filterAndSortDoctors = () => {
+    let result = [...doctors];
+    
+    // Фильтрация врачей
+    if (doctorModalSearch) {
+      const searchLower = doctorModalSearch.toLowerCase();
+      result = result.filter(doctor => 
+        `${doctor.lastname} ${doctor.firstname} ${doctor.middlename || ''}`
+          .toLowerCase()
+          .includes(searchLower))
+    }
+    
+    // Сортировка врачей
+    if (doctorSortConfig.key) {
+      result.sort((a, b) => {
+        let valueA, valueB;
+        
+        if (doctorSortConfig.key === 'name') {
+          valueA = `${a.lastname} ${a.firstname} ${a.middlename || ''}`;
+          valueB = `${b.lastname} ${b.firstname} ${b.middlename || ''}`;
+        } else if (doctorSortConfig.key === 'specialty') {
+          const specialtyA = specialties.find(s => s.specialtyid === a.specialtyid)?.specialtyname || '';
+          const specialtyB = specialties.find(s => s.specialtyid === b.specialtyid)?.specialtyname || '';
+          valueA = specialtyA;
+          valueB = specialtyB;
+        } else {
+          valueA = a[doctorSortConfig.key];
+          valueB = b[doctorSortConfig.key];
+        }
+        
+        if (valueA < valueB) {
+          return doctorSortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return doctorSortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    
+    setFilteredDoctors(result);
+  };
+
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const requestPatientSort = (key) => {
+    let direction = 'asc';
+    if (patientSortConfig.key === key && patientSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setPatientSortConfig({ key, direction });
+  };
+
+  const requestDoctorSort = (key) => {
+    let direction = 'asc';
+    if (doctorSortConfig.key === key && doctorSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setDoctorSortConfig({ key, direction });
+  };
+
+  const getSortIndicator = (key, config) => {
+    if (config.key !== key) return null;
+    return config.direction === 'asc' ? ' ↑' : ' ↓';
   };
 
   const handleInputChange = (e) => {
@@ -152,7 +366,6 @@ const Appointments = () => {
       return;
     }
   
-    // Проверка на наличие записи к врачу на это время
     const isTimeSlotAvailable = !appointments.some(appointment => {
       const appointmentDate = new Date(appointment.date).toLocaleDateString('en-CA');
       return (
@@ -174,8 +387,6 @@ const Appointments = () => {
         time: `${formData.time}:00`,
       };
   
-      console.log("Данные для отправки на сервер:", appointmentData);
-  
       if (currentAppointment) {
         await updateAppointment(currentAppointment.appointmentid, appointmentData);
       } else {
@@ -189,7 +400,6 @@ const Appointments = () => {
   };
 
   const handleEdit = (appointment) => {
-    console.log("Editing appointment:", appointment);
     const patient = patients.find((p) => p.patientid === appointment.patientid);
     const doctor = doctors.find((d) => d.userid === appointment.doctorid);
   
@@ -229,6 +439,12 @@ const Appointments = () => {
     });
   };
 
+  const resetFilters = () => {
+    setPatientSearch("");
+    setDoctorSearch("");
+    setDateSearch("");
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Header appName="Управление приемами" />
@@ -240,54 +456,111 @@ const Appointments = () => {
           <Loader className="flex justify-center my-8" />
         ) : (
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-between mb-4 flex-wrap gap-4">
+              <div className="flex space-x-4 flex-wrap">
+                <Input
+                  type="text"
+                  placeholder="Поиск по пациенту..."
+                  value={patientSearch}
+                  onChange={(e) => setPatientSearch(e.target.value)}
+                  className="w-64"
+                />
+                <Input
+                  type="text"
+                  placeholder="Поиск по врачу..."
+                  value={doctorSearch}
+                  onChange={(e) => setDoctorSearch(e.target.value)}
+                />
+                <Input
+                  type="date"
+                  placeholder="Фильтр по дате..."
+                  value={dateSearch}
+                  onChange={(e) => setDateSearch(e.target.value)}
+                />
+                {(patientSearch || doctorSearch || dateSearch) && (
+                  <Button 
+                    onClick={resetFilters}
+                    className="bg-gray-600 hover:bg-gray-700"
+                  >
+                    Сбросить фильтры
+                  </Button>
+                )}
+              </div>
               <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700">
                 Создать новый прием
               </Button>
             </div>
 
-            <table className="min-w-full bg-white">
-              <thead>
-                <tr>
-                  <th className="py-2 px-4 border-b">Пациент</th>
-                  <th className="py-2 px-4 border-b">Врач</th>
-                  <th className="py-2 px-4 border-b">Дата</th>
-                  <th className="py-2 px-4 border-b">Время</th>
-                  <th className="py-2 px-4 border-b">Причина</th>
-                  <th className="py-2 px-4 border-b">Действия</th>
-                </tr>
-              </thead>
-              <tbody>
-                {appointments.map((appointment) => {
-                  const patient = patients.find((p) => p.patientid === appointment.patientid);
-                  console.log("Appointments:", appointments);
-                  console.log("Doctors (users):", doctors);
-                  const doctor = doctors.find((d) => d.userid === appointment.doctorid);
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white">
+                <thead>
+                  <tr>
+                    <th 
+                      className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                      onClick={() => requestSort('patient')}
+                    >
+                      Пациент {getSortIndicator('patient', sortConfig)}
+                    </th>
+                    <th 
+                      className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                      onClick={() => requestSort('doctor')}
+                    >
+                      Врач {getSortIndicator('doctor', sortConfig)}
+                    </th>
+                    <th 
+                      className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                      onClick={() => requestSort('date')}
+                    >
+                      Дата {getSortIndicator('date', sortConfig)}
+                    </th>
+                    <th 
+                      className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                      onClick={() => requestSort('time')}
+                    >
+                      Время {getSortIndicator('time', sortConfig)}
+                    </th>
+                    <th className="py-2 px-4 border-b">Причина</th>
+                    <th className="py-2 px-4 border-b">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAppointments.length > 0 ? (
+                    filteredAppointments.map((appointment) => {
+                      const patient = patients.find((p) => p.patientid === appointment.patientid);
+                      const doctor = doctors.find((d) => d.userid === appointment.doctorid);
 
-                  return (
-                    <tr key={appointment.appointmentid} className="hover:bg-gray-50">
-                      <td className="py-2 px-4 border-b">
-                        {patient ? `${patient.lastname} ${patient.firstname} ${patient.middlename || ''}` : "Неизвестный пациент"}
-                      </td>
-                      <td className="py-2 px-4 border-b">
-                        {doctor ? `${doctor.lastname} ${doctor.firstname} ${doctor.middlename || ''}` : "Неизвестный врач"}
-                      </td>
-                      <td className="py-2 px-4 border-b">{new Date(appointment.date).toLocaleDateString()}</td>
-                      <td className="py-2 px-4 border-b">{appointment.time.slice(0, 5)}</td>
-                      <td className="py-2 px-4 border-b">{appointment.reason}</td>
-                      <td className="py-2 px-4 border-b">
-                        <Button onClick={() => handleEdit(appointment)} className="mr-2 bg-blue-600 hover:bg-blue-700">
-                          Редактировать
-                        </Button>
-                        <Button onClick={() => handleDelete(appointment.appointmentid)} className="bg-red-600 hover:bg-red-700">
-                          Удалить
-                        </Button>
+                      return (
+                        <tr key={appointment.appointmentid} className="hover:bg-gray-50">
+                          <td className="py-2 px-4 border-b">
+                            {patient ? `${patient.lastname} ${patient.firstname} ${patient.middlename || ''}` : "Неизвестный пациент"}
+                          </td>
+                          <td className="py-2 px-4 border-b">
+                            {doctor ? `${doctor.lastname} ${doctor.firstname} ${doctor.middlename || ''}` : "Неизвестный врач"}
+                          </td>
+                          <td className="py-2 px-4 border-b">{new Date(appointment.date).toLocaleDateString()}</td>
+                          <td className="py-2 px-4 border-b">{appointment.time.slice(0, 5)}</td>
+                          <td className="py-2 px-4 border-b">{appointment.reason}</td>
+                          <td className="py-2 px-4 border-b">
+                            <Button onClick={() => handleEdit(appointment)} className="mr-2 bg-blue-600 hover:bg-blue-700">
+                              Редактировать
+                            </Button>
+                            <Button onClick={() => handleDelete(appointment.appointmentid)} className="bg-red-600 hover:bg-red-700">
+                              Удалить
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="py-4 text-center text-gray-500">
+                        {appointments.length === 0 ? "Нет данных о приемах" : "Ничего не найдено"}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -329,8 +602,8 @@ const Appointments = () => {
                     <option
                       key={index}
                       value={slot.time}
-                      disabled={!slot.available} // Делаем слот недоступным, если он занят
-                      style={{ color: slot.available ? 'black' : 'lightgray' }} // Стилизуем недоступные слоты
+                      disabled={!slot.available}
+                      style={{ color: slot.available ? 'black' : 'lightgray' }}
                     >
                       {slot.time}
                     </option>
@@ -361,8 +634,31 @@ const Appointments = () => {
         <Modal isOpen={isDoctorModalOpen} onClose={() => setIsDoctorModalOpen(false)}>
           <div className="p-6">
             <h2 className="text-xl font-semibold mb-4">Выберите врача</h2>
-            <div className="space-y-4">
-              {doctors.map((doctor) => (
+            <div className="mb-4">
+              <Input
+                type="text"
+                placeholder="Поиск врача..."
+                value={doctorModalSearch}
+                onChange={(e) => setDoctorModalSearch(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="flex mb-2">
+              <div 
+                className="w-1/3 p-2 font-semibold cursor-pointer"
+                onClick={() => requestDoctorSort('name')}
+              >
+                ФИО {getSortIndicator('name', doctorSortConfig)}
+              </div>
+              <div 
+                className="w-1/3 p-2 font-semibold cursor-pointer"
+                onClick={() => requestDoctorSort('specialty')}
+              >
+                Специальность {getSortIndicator('specialty', doctorSortConfig)}
+              </div>
+            </div>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {filteredDoctors.map((doctor) => (
                 <div
                   key={doctor.userid}
                   className="p-4 border rounded-lg cursor-pointer hover:bg-gray-100"
@@ -383,8 +679,31 @@ const Appointments = () => {
         <Modal isOpen={isPatientModalOpen} onClose={() => setIsPatientModalOpen(false)}>
           <div className="p-6">
             <h2 className="text-xl font-semibold mb-4">Выберите пациента</h2>
-            <div className="space-y-4">
-              {patients.map((patient) => (
+            <div className="mb-4">
+              <Input
+                type="text"
+                placeholder="Поиск пациента..."
+                value={patientModalSearch}
+                onChange={(e) => setPatientModalSearch(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="flex mb-2">
+              <div 
+                className="w-1/2 p-2 font-semibold cursor-pointer"
+                onClick={() => requestPatientSort('name')}
+              >
+                ФИО {getSortIndicator('name', patientSortConfig)}
+              </div>
+              <div 
+                className="w-1/2 p-2 font-semibold cursor-pointer"
+                onClick={() => requestPatientSort('dateofbirth')}
+              >
+                Дата рождения {getSortIndicator('dateofbirth', patientSortConfig)}
+              </div>
+            </div>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {filteredPatients.map((patient) => (
                 <div
                   key={patient.patientid}
                   className="p-4 border rounded-lg cursor-pointer hover:bg-gray-100"

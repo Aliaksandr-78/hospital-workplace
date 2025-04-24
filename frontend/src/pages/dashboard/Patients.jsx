@@ -17,6 +17,8 @@ const Patients = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [patients, setPatients] = useState([]);
+  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setModalOpen] = useState(false);
   const [currentPatient, setCurrentPatient] = useState(null);
   const [formData, setFormData] = useState({
@@ -37,18 +39,43 @@ const Patients = () => {
     }
   }, [user]);
 
+  // Эффект для фильтрации пациентов при изменении searchTerm
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredPatients(patients);
+    } else {
+      const filtered = patients.filter(
+        (patient) =>
+          patient.lastname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          patient.firstname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (patient.middlename &&
+            patient.middlename.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          patient.phonenumber.includes(searchTerm) ||
+          (patient.email &&
+            patient.email.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+      setFilteredPatients(filtered);
+    }
+  }, [searchTerm, patients]);
+
   // Функция для загрузки данных о пациентах
   const fetchData = async () => {
     try {
       setLoading(true);
       const patientsData = await getAllPatients();
       setPatients(patientsData);
+      setFilteredPatients(patientsData);
     } catch (error) {
       console.error("Ошибка при загрузке данных:", error);
       setError("Не удалось загрузить данные. Пожалуйста, попробуйте позже.");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Обработчик изменения поискового запроса
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
   };
 
   // Обработчик открытия модального окна для добавления/редактирования
@@ -158,7 +185,14 @@ const Patients = () => {
         </h1>
         {loading && <Loader className="flex justify-center my-8" />}
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-        <div className="flex justify-end mb-4">
+        <div className="flex flex-col md:flex-row justify-between mb-4 gap-4">
+          <Input
+            type="text"
+            placeholder="Поиск пациентов..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            className="flex-grow max-w-md"
+          />
           <Button
             onClick={() => openModal()}
             className="bg-green-600 hover:bg-green-700"
@@ -182,8 +216,8 @@ const Patients = () => {
               </tr>
             </thead>
             <tbody>
-              {patients.length > 0 ? (
-                patients.map((patient) => {
+              {filteredPatients.length > 0 ? (
+                filteredPatients.map((patient) => {
                   const formattedDate = new Date(patient.dateofbirth).toLocaleDateString();
                   return (
                     <tr key={patient.patientid} className="hover:bg-gray-50">
@@ -196,7 +230,7 @@ const Patients = () => {
                       <td className="py-2 px-4 border-b">{patient.email}</td>
                       <td className="py-2 px-4 border-b">{patient.address}</td>
                       <td className="py-2 px-4 border-b">
-                        <div className="flex space-x-2"> {/* Добавлен контейнер с отступами */}
+                        <div className="flex space-x-2">
                           <Button
                             onClick={() => openModal(patient)}
                             className="bg-blue-600 hover:bg-blue-700"
@@ -217,7 +251,9 @@ const Patients = () => {
               ) : (
                 <tr>
                   <td colSpan="9" className="text-center py-4">
-                    Нет данных о пациентах.
+                    {searchTerm.trim() === ""
+                      ? "Нет данных о пациентах."
+                      : "Пациенты не найдены."}
                   </td>
                 </tr>
               )}

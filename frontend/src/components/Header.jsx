@@ -25,7 +25,6 @@ const Header = ({ appName }) => {
           { path: "/manage-roles", label: "Менеджер ролей"},
           { path: "/manage-specialties", label: "Менеджер специальностей"},
           { path: "/manage-medications", label: "Менеджер медикаментов"},
-          { path: "/manage-lab-tests", label: "Менеджер лаб. тесты"},
           { path: "/manage-document-templates", label: "Менеджер документации"},
           { path: "/manage-eventtypes", label: "Менеджер типов событий"},
           { path: "/manage-schedules", label: "Менеджер расписания"},

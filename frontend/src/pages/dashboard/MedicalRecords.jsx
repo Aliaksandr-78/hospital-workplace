@@ -15,11 +15,11 @@ const MedicalRecords = () => {
   const [loading, setLoading] = useState(true)
   const [medicalRecords, setMedicalRecords] = useState([])
   const [patients, setPatients] = useState([])
+  const [searchTerm, setSearchTerm] = useState("")
   const [error, setError] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [formData, setFormData] = useState({
-    PatientID: ""
-  })
+  const [selectedPatient, setSelectedPatient] = useState(null)
+  const [patientSearch, setPatientSearch] = useState("")
 
   useEffect(() => {
     if (user) {
@@ -44,23 +44,33 @@ const MedicalRecords = () => {
     }
   }
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData({ ...formData, [name]: value })
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value)
+  }
+
+  const handlePatientSearchChange = (e) => {
+    setPatientSearch(e.target.value)
+  }
+
+  const handleSelectPatient = (patient) => {
+    setSelectedPatient(patient)
+    setPatientSearch(`${patient.lastname} ${patient.firstname} ${patient.middlename}`)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      if (!formData.PatientID) {
+      if (!selectedPatient) {
         setError("Необходимо выбрать пациента")
         return
       }
       
-      await createMedicalRecord(formData)
+      await createMedicalRecord({ PatientID: selectedPatient.patientid })
       setIsModalOpen(false)
       fetchData()
       setError("")
+      setSelectedPatient(null)
+      setPatientSearch("")
     } catch (error) {
       console.error("Ошибка при создании медицинской карты:", error)
       setError("Не удалось создать медицинскую карту. Пожалуйста, попробуйте позже.")
@@ -79,9 +89,24 @@ const MedicalRecords = () => {
 
   const handleCancel = () => {
     setIsModalOpen(false)
-    setFormData({ PatientID: "" })
+    setSelectedPatient(null)
+    setPatientSearch("")
     setError("")
   }
+
+  // Фильтрация пациентов для поиска
+  const filteredPatients = patients.filter(patient => {
+    const fullName = `${patient.lastname} ${patient.firstname} ${patient.middlename}`.toLowerCase()
+    return fullName.includes(patientSearch.toLowerCase())
+  })
+
+  // Фильтрация медицинских карт для основного поиска
+  const filteredRecords = medicalRecords.filter(record => {
+    const patient = patients.find(p => p.patientid === record.patientid)
+    if (!patient) return false
+    const fullName = `${patient.lastname} ${patient.firstname} ${patient.middlename}`.toLowerCase()
+    return fullName.includes(searchTerm.toLowerCase())
+  })
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -94,7 +119,16 @@ const MedicalRecords = () => {
 
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-between mb-4">
+          <div className="w-1/2">
+            <Input
+              type="text"
+              placeholder="Поиск карт по пациенту..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              className="w-full"
+            />
+          </div>
           <Button 
             onClick={() => setIsModalOpen(true)} 
             className="bg-green-600 hover:bg-green-700"
@@ -113,34 +147,42 @@ const MedicalRecords = () => {
               </tr>
             </thead>
             <tbody>
-              {medicalRecords.map((record) => (
-                <tr key={record.recordid} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b text-center">
-                    {patients.find((p) => p.patientid === record.patientid)?.lastname}{" "}
-                    {patients.find((p) => p.patientid === record.patientid)?.firstname}{" "}
-                    {patients.find((p) => p.patientid === record.patientid)?.middlename}
-                  </td>
-                  <td className="py-2 px-4 border-b text-center">
-                    {new Date(record.createdat).toLocaleDateString()}
-                  </td>
-                  <td className="py-2 px-4 border-b text-center">
-                    <div className="flex justify-center space-x-2">
-                      <Button
-                        onClick={() => navigate(`/patient-medical-record/${record.recordid}`)}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        Перейти
-                      </Button>
-                      <Button
-                        onClick={() => handleDelete(record.recordid)}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Удалить
-                      </Button>
-                    </div>
+              {filteredRecords.length > 0 ? (
+                filteredRecords.map((record) => (
+                  <tr key={record.recordid} className="hover:bg-gray-50">
+                    <td className="py-2 px-4 border-b text-center">
+                      {patients.find((p) => p.patientid === record.patientid)?.lastname}{" "}
+                      {patients.find((p) => p.patientid === record.patientid)?.firstname}{" "}
+                      {patients.find((p) => p.patientid === record.patientid)?.middlename}
+                    </td>
+                    <td className="py-2 px-4 border-b text-center">
+                      {new Date(record.createdat).toLocaleDateString()}
+                    </td>
+                    <td className="py-2 px-4 border-b text-center">
+                      <div className="flex justify-center space-x-2">
+                        <Button
+                          onClick={() => navigate(`/patient-medical-record/${record.recordid}`)}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Перейти
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(record.recordid)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Удалить
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="3" className="py-4 text-center text-gray-500">
+                    {searchTerm ? "Ничего не найдено" : "Нет медицинских карт"}
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -149,21 +191,32 @@ const MedicalRecords = () => {
           <div className="p-6">
             <h2 className="text-xl font-semibold mb-4">Создать новую медицинскую карту</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                label="Пациент"
-                name="PatientID"
-                value={formData.PatientID}
-                onChange={handleInputChange}
-                type="select"
-                required
-              >
-                <option value="">Выберите пациента</option>
-                {patients.map((patient) => (
-                  <option key={patient.patientid} value={patient.patientid}>
-                    {patient.lastname} {patient.firstname} {patient.middlename}
-                  </option>
-                ))}
-              </Input>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Поиск пациента*</label>
+                <Input
+                  type="text"
+                  placeholder="Введите ФИО пациента..."
+                  value={patientSearch}
+                  onChange={handlePatientSearchChange}
+                  className="w-full"
+                />
+                {selectedPatient && (
+                  <div className="p-2 bg-gray-100 rounded">
+                    Выбран: {selectedPatient.lastname} {selectedPatient.firstname} {selectedPatient.middlename}
+                  </div>
+                )}
+                <div className="max-h-60 overflow-y-auto border rounded">
+                  {filteredPatients.map(patient => (
+                    <div 
+                      key={patient.patientid}
+                      className={`p-2 hover:bg-blue-50 cursor-pointer ${selectedPatient?.patientid === patient.patientid ? 'bg-blue-100' : ''}`}
+                      onClick={() => handleSelectPatient(patient)}
+                    >
+                      {patient.lastname} {patient.firstname} {patient.middlename}
+                    </div>
+                  ))}
+                </div>
+              </div>
               
               {error && <p className="text-red-500">{error}</p>}
               
@@ -175,7 +228,11 @@ const MedicalRecords = () => {
                 >
                   Отмена
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                <Button 
+                  type="submit" 
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={!selectedPatient}
+                >
                   Создать
                 </Button>
               </div>

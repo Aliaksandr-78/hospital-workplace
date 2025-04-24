@@ -12,13 +12,11 @@ import ManageSchedules from "./pages/dashboard/ManageSchedules"
 import MedicalDischarges from "./pages/dashboard/MedicalDischarges"
 import MedicalCertificates from "./pages/dashboard/MedicalCertificates"
 import ConsentForms from "./pages/dashboard/ConsentForms"
-import Reports from "./pages/admin/Reports"
 import ManageUsers from "./pages/admin/ManageUsers"
 import ManageServices from "./pages/admin/ManageServices"
 import ManageSpecialties from "./pages/admin/ManageSpecialties"
 import ManageRoles from "./pages/admin/ManageRoles"
 import ManageMedications from "./pages/admin/ManageMedications"
-import ManageLabTests from "./pages/admin/ManageLabTests"
 import ManageDocumentTemplates from "./pages/admin/ManageDocumentTemplates"
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import ManageEventTypes from "./pages/admin/ManageEventTypes"
@@ -133,14 +131,6 @@ const App = () => {
               }
             />
             <Route
-              path="/reports"
-              element={
-                <PrivateRoute>
-                  <Reports />
-                </PrivateRoute>
-              }
-            />
-            <Route
               path="/manage-users"
               element={
                 <PrivateRoute>
@@ -193,14 +183,6 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <ManageDiagnosis />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/manage-lab-tests"
-              element={
-                <PrivateRoute>
-                  <ManageLabTests />
                 </PrivateRoute>
               }
             />

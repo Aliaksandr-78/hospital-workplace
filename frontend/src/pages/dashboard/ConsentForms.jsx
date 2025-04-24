@@ -12,6 +12,7 @@ const ConsentForms = () => {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [consentForms, setConsentForms] = useState([])
+  const [filteredConsentForms, setFilteredConsentForms] = useState([])
   const [patients, setPatients] = useState([])
   const [error, setError] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -22,11 +23,35 @@ const ConsentForms = () => {
     details: "",
   })
 
+  // Состояния для поиска и сортировки
+  const [patientSearch, setPatientSearch] = useState("")
+  const [procedureSearch, setProcedureSearch] = useState("")
+  const [dateSearch, setDateSearch] = useState("")
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
+  const [patientSearchModal, setPatientSearchModal] = useState("")
+  const [filteredPatients, setFilteredPatients] = useState([])
+
   useEffect(() => {
     if (user) {
       fetchData()
     }
   }, [user])
+
+  useEffect(() => {
+    filterAndSortConsentForms()
+  }, [consentForms, patientSearch, procedureSearch, dateSearch, sortConfig])
+
+  useEffect(() => {
+    if (patients.length > 0) {
+      setFilteredPatients(
+        patients.filter(patient => 
+          `${patient.lastname} ${patient.firstname} ${patient.middlename}`
+            .toLowerCase()
+            .includes(patientSearchModal.toLowerCase())
+        )
+      )
+    }
+  }, [patientSearchModal, patients])
 
   const fetchData = async () => {
     setLoading(true)
@@ -37,6 +62,7 @@ const ConsentForms = () => {
       ])
       setConsentForms(consentFormsData)
       setPatients(patientsData)
+      setFilteredPatients(patientsData)
     } catch (error) {
       console.error("Ошибка при загрузке данных:", error)
       setError("Не удалось загрузить данные. Пожалуйста, попробуйте позже.")
@@ -45,9 +71,107 @@ const ConsentForms = () => {
     }
   }
 
+  const filterAndSortConsentForms = () => {
+    let result = [...consentForms]
+    
+    // Фильтрация по пациенту
+    if (patientSearch) {
+      const searchLower = patientSearch.toLowerCase()
+      result = result.filter(consentForm => {
+        const patient = patients.find(p => p.patientid === consentForm.patientid)
+        if (!patient) return false
+        return (
+          patient.lastname.toLowerCase().includes(searchLower) ||
+          patient.firstname.toLowerCase().includes(searchLower) ||
+          patient.middlename?.toLowerCase().includes(searchLower)
+      )})
+    }
+    
+    // Фильтрация по процедуре
+    if (procedureSearch) {
+      const searchLower = procedureSearch.toLowerCase()
+      result = result.filter(consentForm => 
+        consentForm.procedure.toLowerCase().includes(searchLower))
+    }
+    
+    // Фильтрация по дате
+    if (dateSearch) {
+      const searchDate = new Date(dateSearch).toISOString().split('T')[0]
+      result = result.filter(consentForm => 
+        consentForm.date.includes(searchDate))
+    }
+    
+    // Сортировка
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        let valueA, valueB
+        
+        if (sortConfig.key === 'patient') {
+          const patientA = patients.find(p => p.patientid === a.patientid)
+          const patientB = patients.find(p => p.patientid === b.patientid)
+          valueA = patientA ? `${patientA.lastname} ${patientA.firstname} ${patientA.middlename || ''}` : ''
+          valueB = patientB ? `${patientB.lastname} ${patientB.firstname} ${patientB.middlename || ''}` : ''
+        } else if (sortConfig.key === 'procedure') {
+          valueA = a.procedure
+          valueB = b.procedure
+        } else if (sortConfig.key === 'date') {
+          valueA = new Date(a.date)
+          valueB = new Date(b.date)
+        } else {
+          valueA = a[sortConfig.key]
+          valueB = b[sortConfig.key]
+        }
+        
+        if (valueA < valueB) {
+          return sortConfig.direction === 'asc' ? -1 : 1
+        }
+        if (valueA > valueB) {
+          return sortConfig.direction === 'asc' ? 1 : -1
+        }
+        return 0
+      })
+    }
+    
+    setFilteredConsentForms(result)
+  }
+
+  const requestSort = (key) => {
+    let direction = 'asc'
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc'
+    }
+    setSortConfig({ key, direction })
+  }
+
+  const getSortIndicator = (key) => {
+    if (sortConfig.key !== key) return null
+    return sortConfig.direction === 'asc' ? ' ↑' : ' ↓'
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
+  }
+
+  const handlePatientSearchChange = (e) => {
+    setPatientSearch(e.target.value)
+  }
+
+  const handleProcedureSearchChange = (e) => {
+    setProcedureSearch(e.target.value)
+  }
+
+  const handleDateSearchChange = (e) => {
+    setDateSearch(e.target.value)
+  }
+
+  const handlePatientSearchModalChange = (e) => {
+    setPatientSearchModal(e.target.value)
+  }
+
+  const handleSelectPatient = (patientId) => {
+    setFormData({ ...formData, patientid: patientId })
+    setPatientSearchModal("")
   }
 
   const handleSubmit = async (e) => {
@@ -86,7 +210,20 @@ const ConsentForms = () => {
       date: "",
       details: "",
     })
+    setPatientSearchModal("")
     setError("")
+  }
+
+  const resetFilters = () => {
+    setPatientSearch("")
+    setProcedureSearch("")
+    setDateSearch("")
+  }
+
+  const getSelectedPatientName = () => {
+    if (!formData.patientid) return ""
+    const patient = patients.find(p => p.patientid === formData.patientid)
+    return patient ? `${patient.lastname} ${patient.firstname} ${patient.middlename || ''}` : ""
   }
 
   return (
@@ -100,7 +237,36 @@ const ConsentForms = () => {
 
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-between mb-4 flex-wrap gap-4">
+          <div className="flex space-x-4 flex-wrap">
+            <Input
+              type="text"
+              placeholder="Поиск по пациенту..."
+              value={patientSearch}
+              onChange={handlePatientSearchChange}
+              className="w-64"
+            />
+            <Input
+              type="text"
+              placeholder="Поиск по процедуре..."
+              value={procedureSearch}
+              onChange={handleProcedureSearchChange}
+            />
+            <Input
+              type="date"
+              placeholder="Фильтр по дате..."
+              value={dateSearch}
+              onChange={handleDateSearchChange}
+            />
+            {(patientSearch || procedureSearch || dateSearch) && (
+              <Button 
+                onClick={resetFilters}
+                className="bg-gray-600 hover:bg-gray-700"
+              >
+                Сбросить фильтры
+              </Button>
+            )}
+          </div>
           <Button 
             onClick={() => setIsModalOpen(true)} 
             className="bg-green-600 hover:bg-green-700"
@@ -110,74 +276,112 @@ const ConsentForms = () => {
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <table className="min-w-full bg-white">
-            <thead>
-              <tr>
-                <th className="py-2 px-4 border-b">Пациент</th>
-                <th className="py-2 px-4 border-b">Процедура</th>
-                <th className="py-2 px-4 border-b">Дата</th>
-                <th className="py-2 px-4 border-b">Детали</th>
-                <th className="py-2 px-4 border-b">Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {consentForms.map((consentForm) => (
-                <tr key={consentForm.ConsentFormID} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">
-                    {patients.find((p) => p.patientid === consentForm.patientid)?.lastname}{" "}
-                    {patients.find((p) => p.patientid === consentForm.patientid)?.firstname}{" "}
-                    {patients.find((p) => p.patientid === consentForm.patientid)?.middlename}
-                  </td>
-                  <td className="py-2 px-4 border-b">{consentForm.procedure}</td>
-                  <td className="py-2 px-4 border-b">
-                    {new Date(consentForm.date).toLocaleDateString()}
-                  </td>
-                  <td className="py-2 px-4 border-b">{consentForm.details}</td>
-                  <td className="py-2 px-4 border-b">
-                    <Button
-                      onClick={() => handleDelete(consentForm.consentformid)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Удалить
-                    </Button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              <thead>
+                <tr>
+                  <th 
+                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    onClick={() => requestSort('patient')}
+                  >
+                    Пациент {getSortIndicator('patient')}
+                  </th>
+                  <th 
+                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    onClick={() => requestSort('procedure')}
+                  >
+                    Процедура {getSortIndicator('procedure')}
+                  </th>
+                  <th 
+                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    onClick={() => requestSort('date')}
+                  >
+                    Дата {getSortIndicator('date')}
+                  </th>
+                  <th className="py-2 px-4 border-b">Детали</th>
+                  <th className="py-2 px-4 border-b">Действия</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredConsentForms.length > 0 ? (
+                  filteredConsentForms.map((consentForm) => {
+                    const patient = patients.find(p => p.patientid === consentForm.patientid)
+                    return (
+                      <tr key={consentForm.consentformid} className="hover:bg-gray-50">
+                        <td className="py-2 px-4 border-b">
+                          {patient ? `${patient.lastname} ${patient.firstname} ${patient.middlename || ''}` : 'Неизвестный пациент'}
+                        </td>
+                        <td className="py-2 px-4 border-b">{consentForm.procedure}</td>
+                        <td className="py-2 px-4 border-b">
+                          {new Date(consentForm.date).toLocaleDateString()}
+                        </td>
+                        <td className="py-2 px-4 border-b">{consentForm.details}</td>
+                        <td className="py-2 px-4 border-b">
+                          <Button
+                            onClick={() => handleDelete(consentForm.consentformid)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Удалить
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="py-4 text-center text-gray-500">
+                      {consentForms.length === 0 ? "Нет данных о согласиях" : "Ничего не найдено"}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <Modal isOpen={isModalOpen} onClose={handleCancel}>
           <div className="p-6">
             <h2 className="text-xl font-semibold mb-4">Создать новое согласие</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Пациент *</label>
+                <Input
+                  type="text"
+                  placeholder="Поиск пациента..."
+                  value={patientSearchModal}
+                  onChange={handlePatientSearchModalChange}
+                  className="w-full"
+                />
+                {formData.patientid && (
+                  <div className="p-2 bg-gray-100 rounded">
+                    Выбран: {getSelectedPatientName()}
+                  </div>
+                )}
+                <div className="max-h-60 overflow-y-auto border rounded">
+                  {filteredPatients.map(patient => (
+                    <div 
+                      key={patient.patientid}
+                      className={`p-2 hover:bg-blue-50 cursor-pointer ${formData.patientid === patient.patientid ? 'bg-blue-100' : ''}`}
+                      onClick={() => handleSelectPatient(patient.patientid)}
+                    >
+                      {patient.lastname} {patient.firstname} {patient.middlename || ''}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <Input
-                label="Пациент"
-                name="patientid"
-                value={formData.PatientID}
-                onChange={handleInputChange}
-                type="select"
-                required
-              >
-                <option value="">Выберите пациента</option>
-                {patients.map((patient) => (
-                  <option key={patient.patientid} value={patient.patientid}>
-                    {patient.lastname} {patient.firstname}
-                  </option>
-                ))}
-              </Input>
-              <Input
-                label="Процедура"
+                label="Процедура *"
                 name="procedure"
-                value={formData.Procedure}
+                value={formData.procedure}
                 onChange={handleInputChange}
                 type="text"
                 required
               />
               <Input
-                label="Дата"
+                label="Дата *"
                 name="date"
-                value={formData.Date}
+                value={formData.date}
                 onChange={handleInputChange}
                 type="date"
                 required
@@ -185,7 +389,7 @@ const ConsentForms = () => {
               <Input
                 label="Детали"
                 name="details"
-                value={formData.Details}
+                value={formData.details}
                 onChange={handleInputChange}
                 type="text"
               />

@@ -29,6 +29,7 @@ import { getAllLabTests } from "../../api/labTestCatalogApi";
 import { getUserById } from "../../api/userApi";
 import { getAllDiagnoses } from "../../api/diagnosisApi";
 import { getAllMedications } from "../../api/medicationApi";
+import { getPatientById } from "../../api/patientApi";
 import Button from "../../components/Button";
 import Header from "../../components/Header";
 import Loader from "../../components/Loader";
@@ -43,6 +44,7 @@ const PatientMedicalRecord = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [medicalRecord, setMedicalRecord] = useState(null);
+  const [patient, setPatient] = useState(null);
   const [patientFeatures, setPatientFeatures] = useState([]);
   const [entries, setEntries] = useState([]);
   const [labTests, setLabTests] = useState([]);
@@ -201,7 +203,10 @@ const PatientMedicalRecord = () => {
           throw new Error("Медицинская карта не найдена");
         }
         
+        const patientData = await getPatientById(recordData.patientid);
+
         setMedicalRecord(recordData);
+        setPatient(patientData);
         setPatientFeatures(featuresData);
         setSpecialties(specialtiesData);
         setLabTestCatalog(labCatalogData);
@@ -664,9 +669,9 @@ const PatientMedicalRecord = () => {
     return <div className="text-center text-red-500">Медицинская карта не найдена</div>;
   }
 
-
-
-
+  const patientFullName = patient 
+    ? `${patient.lastname} ${patient.firstname} ${patient.middlename || ''}`.trim()
+    : 'Пациент';
 
   const PlusIcon = (props) => (
     <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -694,7 +699,7 @@ const PatientMedicalRecord = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header appName={`Медицинская карта пациента`} />
+      <Header appName={`Медицинская карта пациента: ${patientFullName}`} />
 
       <div className="container mx-auto p-4 flex">
         {/* Левая панель с деревьями */}

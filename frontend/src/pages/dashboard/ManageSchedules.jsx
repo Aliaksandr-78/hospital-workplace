@@ -16,86 +16,112 @@ import Input from "../../components/Input";
 
 const ManageSchedules = () => {
   const { user } = useAuth();
-  const [schedules, setSchedules] = useState([]); // Состояние для списка расписаний
-  const [doctors, setDoctors] = useState([]); // Состояние для списка врачей
-  const [eventTypes, setEventTypes] = useState([]); // Состояние для списка типов событий
-  const [loading, setLoading] = useState(true); // Состояние для загрузки
-  const [error, setError] = useState(""); // Состояние для ошибок
-  const [isModalOpen, setModalOpen] = useState(false); // Состояние для модального окна
-  const [currentSchedule, setCurrentSchedule] = useState(null); // Состояние для текущего расписания (редактирование/добавление)
+  const [schedules, setSchedules] = useState([]);
+  const [filteredSchedules, setFilteredSchedules] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [eventTypes, setEventTypes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [currentSchedule, setCurrentSchedule] = useState(null);
   const [formData, setFormData] = useState({
     doctorid: user?.userid || "",
     date: "",
     starttime: "",
     endtime: "",
     eventtypeid: "",
-  }); // Состояние для данных формы
+  });
 
-  // Загрузка данных при монтировании компонента
+  // Состояния для поиска и сортировки
+  const [doctorSearch, setDoctorSearch] = useState("");
+  const [dateSearch, setDateSearch] = useState("");
+  const [filteredDoctors, setFilteredDoctors] = useState([]);
+  const [selectedDoctorName, setSelectedDoctorName] = useState("");
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
+
+  // Загрузка данных
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [schedulesData, doctorsData, eventTypesData] = await Promise.all([
-          getAllSchedules(),
-          getAllUsers(),
-          getAllEventTypes(),
-        ]);
-        setSchedules(schedulesData);
-        setDoctors(doctorsData);
-        setEventTypes(eventTypesData);
-      } catch (error) {
-        console.error("Ошибка при загрузке данных:", error);
-        setError("Не удалось загрузить данные. Пожалуйста, попробуйте позже.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, [user]);
 
-  // Обработчик открытия модального окна для добавления/редактирования
-  const openModal = (schedule = null) => {
-    setCurrentSchedule(schedule);
-    setFormData(
-      schedule
-        ? {
-            doctorid: schedule.doctorid,
-            date: new Date(schedule.date).toLocaleDateString('en-CA'), // Форматируем дату
-            starttime: schedule.starttime.slice(0, 5), // Форматируем время (HH:mm)
-            endtime: schedule.endtime.slice(0, 5), // Форматируем время (HH:mm)
-            eventtypeid: schedule.eventtypeid,
-          }
-        : {
-            doctorid: user?.userid || "",
-            date: "",
-            starttime: "",
-            endtime: "",
-            eventtypeid: "",
-          }
-    );
-    setModalOpen(true);
-  };
+  // Фильтрация врачей для поиска
+  useEffect(() => {
+    if (doctors.length > 0) {
+      const filtered = doctors.filter(doctor => 
+        `${doctor.lastname} ${doctor.firstname}`
+          .toLowerCase()
+          .includes(doctorSearch.toLowerCase())
+      );
+      setFilteredDoctors(filtered);
+    }
+  }, [doctorSearch, doctors]);
 
-  // Обработчик закрытия модального окна
-  const closeModal = () => {
-    setModalOpen(false);
-    setCurrentSchedule(null);
-    setFormData({
-      doctorid: user?.userid || "",
-      date: "",
-      starttime: "",
-      endtime: "",
-      eventtypeid: "",
-    });
-  };
+  // Фильтрация и сортировка расписаний
+  useEffect(() => {
+    let result = [...schedules];
+    
+    // Фильтрация по врачу
+    if (doctorSearch) {
+      const searchLower = doctorSearch.toLowerCase();
+      result = result.filter(schedule => {
+        const doctor = doctors.find(d => d.userid === schedule.doctorid);
+        if (!doctor) return false;
+        return (
+          doctor.lastname.toLowerCase().includes(searchLower) ||
+          doctor.firstname.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+    
+    // Фильтрация по дате
+    if (dateSearch) {
+      const searchDate = new Date(dateSearch).toISOString().split('T')[0];
+      result = result.filter(schedule => 
+        schedule.date.includes(searchDate))
+    }
 
-  // Обработчик изменения данных формы
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    // Сортировка
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        // Сортировка по врачу
+        if (sortConfig.key === 'doctor') {
+          const doctorA = doctors.find(d => d.userid === a.doctorid);
+          const doctorB = doctors.find(d => d.userid === b.doctorid);
+          const nameA = doctorA ? `${doctorA.lastname} ${doctorA.firstname}` : '';
+          const nameB = doctorB ? `${doctorB.lastname} ${doctorB.firstname}` : '';
+          return sortConfig.direction === 'asc' 
+            ? nameA.localeCompare(nameB)
+            : nameB.localeCompare(nameA);
+        }
+        
+        // Сортировка по типу события
+        if (sortConfig.key === 'eventtype') {
+          const typeA = eventTypes.find(et => et.eventtypeid === a.eventtypeid)?.eventname || '';
+          const typeB = eventTypes.find(et => et.eventtypeid === b.eventtypeid)?.eventname || '';
+          return sortConfig.direction === 'asc' 
+            ? typeA.localeCompare(typeB)
+            : typeB.localeCompare(typeA);
+        }
+        
+        // Сортировка по остальным полям
+        const valueA = a[sortConfig.key];
+        const valueB = b[sortConfig.key];
+        
+        if (valueA < valueB) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    setFilteredSchedules(result);
+  }, [schedules, doctorSearch, dateSearch, doctors, eventTypes, sortConfig]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -105,8 +131,9 @@ const ManageSchedules = () => {
         getAllUsers(),
         getAllEventTypes(),
       ]);
-      setSchedules(schedulesData); // Обновляем состояние schedules
+      setSchedules(schedulesData);
       setDoctors(doctorsData);
+      setFilteredDoctors(doctorsData);
       setEventTypes(eventTypesData);
     } catch (error) {
       console.error("Ошибка при загрузке данных:", error);
@@ -116,11 +143,83 @@ const ManageSchedules = () => {
     }
   };
 
-  // Обработчик отправки формы (добавление/редактирование)
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIndicator = (key) => {
+    if (sortConfig.key !== key) return null;
+    return sortConfig.direction === 'asc' ? ' ↑' : ' ↓';
+  };
+
+  const openModal = (schedule = null) => {
+    setCurrentSchedule(schedule);
+    
+    if (schedule) {
+      const doctor = doctors.find(d => d.userid === schedule.doctorid);
+      setSelectedDoctorName(doctor ? `${doctor.lastname} ${doctor.firstname}` : "");
+      
+      setFormData({
+        doctorid: schedule.doctorid,
+        date: new Date(schedule.date).toLocaleDateString('en-CA'),
+        starttime: schedule.starttime.slice(0, 5),
+        endtime: schedule.endtime.slice(0, 5),
+        eventtypeid: schedule.eventtypeid,
+      });
+    } else {
+      setSelectedDoctorName("");
+      setFormData({
+        doctorid: user?.userid || "",
+        date: "",
+        starttime: "",
+        endtime: "",
+        eventtypeid: "",
+      });
+    }
+    
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setCurrentSchedule(null);
+    setDoctorSearch("");
+    setSelectedDoctorName("");
+    setFormData({
+      doctorid: user?.userid || "",
+      date: "",
+      starttime: "",
+      endtime: "",
+      eventtypeid: "",
+    });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleDoctorSearchChange = (e) => {
+    setDoctorSearch(e.target.value);
+  };
+
+  const handleDateSearchChange = (e) => {
+    setDateSearch(e.target.value);
+  };
+
+  const handleSelectDoctor = (doctorId, doctorName) => {
+    setFormData(prev => ({ ...prev, doctorid: doctorId }));
+    setSelectedDoctorName(doctorName);
+    setDoctorSearch("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
   
-    // Проверка, что все поля заполнены
     if (!formData.doctorid || !formData.date || !formData.starttime || !formData.endtime || !formData.eventtypeid) {
       setError("Все поля обязательны для заполнения.");
       return;
@@ -128,138 +227,208 @@ const ManageSchedules = () => {
   
     try {
       const scheduleData = {
-        doctorid: formData.doctorid, // Используем snake_case
-        date: new Date(formData.date).toISOString().split('T')[0], // Форматируем дату в YYYY-MM-DD
-        starttime: formData.starttime + ":00", // Добавляем секунды
-        endtime: formData.endtime + ":00", // Добавляем секунды
-        eventtypeid: formData.eventtypeid, // Используем snake_case
+        doctorid: formData.doctorid,
+        date: new Date(formData.date).toISOString().split('T')[0],
+        starttime: formData.starttime + ":00",
+        endtime: formData.endtime + ":00",
+        eventtypeid: formData.eventtypeid,
       };
   
-      let result;
       if (currentSchedule) {
-        result = await updateSchedule(currentSchedule.scheduleid, scheduleData);
+        await updateSchedule(currentSchedule.scheduleid, scheduleData);
       } else {
-        result = await createSchedule(scheduleData);
+        await createSchedule(scheduleData);
       }
   
-      console.log("Результат запроса:", result); // Логирование результата
-  
       closeModal();
-      fetchData(); // Обновляем данные в таблице
+      fetchData();
     } catch (error) {
       console.error("Ошибка при сохранении расписания:", error);
       setError("Не удалось сохранить расписание. Пожалуйста, попробуйте позже.");
     }
   };
 
-  // Обработчик удаления расписания
   const handleDelete = async (scheduleID) => {
     try {
       await deleteSchedule(scheduleID);
-      setSchedules((prev) => prev.filter((schedule) => schedule.scheduleid !== scheduleID));
+      fetchData();
     } catch (error) {
       console.error("Ошибка при удалении расписания:", error);
       setError("Не удалось удалить расписание. Пожалуйста, попробуйте позже.");
     }
   };
 
+  const resetFilters = () => {
+    setDoctorSearch("");
+    setDateSearch("");
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Шапка с кнопкой выхода */}
       <Header appName="Управление расписанием" />
 
-      {/* Основное содержимое */}
       <div className="container mx-auto p-4">
         <h1 className="text-3xl font-bold mb-6 text-center">Управление расписанием</h1>
 
-        {/* Индикатор загрузки */}
         {loading && <Loader className="flex justify-center my-8" />}
-
-        {/* Сообщение об ошибке */}
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-        {/* Кнопка добавления нового расписания */}
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-between mb-4 flex-wrap gap-4">
+          <div className="flex items-center space-x-4 flex-wrap">
+            <Input
+              type="text"
+              placeholder="Поиск по врачу..."
+              value={doctorSearch}
+              onChange={handleDoctorSearchChange}
+              className="w-64"
+            />
+            <Input
+              type="date"
+              placeholder="Поиск по дате..."
+              value={dateSearch}
+              onChange={handleDateSearchChange}
+            />
+            {(doctorSearch || dateSearch) && (
+              <Button 
+                onClick={resetFilters}
+                className="bg-gray-600 hover:bg-gray-700"
+              >
+                Сбросить фильтры
+              </Button>
+            )}
+          </div>
           <Button onClick={() => openModal()} className="bg-green-600 hover:bg-green-700">
             Добавить расписание
           </Button>
         </div>
 
-        {/* Таблица расписаний */}
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <table className="min-w-full bg-white">
-            <thead>
-              <tr>
-                <th className="py-2 px-4 border-b">Врач</th>
-                <th className="py-2 px-4 border-b">Дата</th>
-                <th className="py-2 px-4 border-b">Начало</th>
-                <th className="py-2 px-4 border-b">Конец</th>
-                <th className="py-2 px-4 border-b">Тип события</th>
-                <th className="py-2 px-4 border-b">Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {schedules.map((schedule) => (
-                <tr key={schedule.scheduleid} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">
-                    {doctors.find((d) => d.userid === schedule.doctorid)?.lastname}{" "}
-                    {doctors.find((d) => d.userid === schedule.doctorid)?.firstname}
-                  </td>
-                  <td className="py-2 px-4 border-b">
-                    {new Date(schedule.date).toLocaleDateString()} {/* Форматируем дату */}
-                  </td>
-                  <td className="py-2 px-4 border-b">
-                    {schedule.starttime.slice(0, 5)} {/* Форматируем время (HH:mm) */}
-                  </td>
-                  <td className="py-2 px-4 border-b">
-                    {schedule.endtime.slice(0, 5)} {/* Форматируем время (HH:mm) */}
-                  </td>
-                  <td className="py-2 px-4 border-b">
-                    {eventTypes.find((et) => et.eventtypeid === schedule.eventtypeid)?.eventname}
-                  </td>
-                  <td className="py-2 px-4 border-b">
-                    <Button
-                      onClick={() => openModal(schedule)}
-                      className="mr-2 bg-blue-600 hover:bg-blue-700"
-                    >
-                      Редактировать
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(schedule.scheduleid)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Удалить
-                    </Button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              <thead>
+                <tr>
+                  <th 
+                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    onClick={() => requestSort('doctor')}
+                  >
+                    Врач {getSortIndicator('doctor')}
+                  </th>
+                  <th 
+                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    onClick={() => requestSort('date')}
+                  >
+                    Дата {getSortIndicator('date')}
+                  </th>
+                  <th 
+                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    onClick={() => requestSort('starttime')}
+                  >
+                    Начало {getSortIndicator('starttime')}
+                  </th>
+                  <th 
+                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    onClick={() => requestSort('endtime')}
+                  >
+                    Конец {getSortIndicator('endtime')}
+                  </th>
+                  <th 
+                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    onClick={() => requestSort('eventtype')}
+                  >
+                    Тип события {getSortIndicator('eventtype')}
+                  </th>
+                  <th className="py-2 px-4 border-b">Действия</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredSchedules.length > 0 ? (
+                  filteredSchedules.map((schedule) => {
+                    const doctor = doctors.find(d => d.userid === schedule.doctorid);
+                    const eventType = eventTypes.find(et => et.eventtypeid === schedule.eventtypeid);
+                    
+                    return (
+                      <tr key={schedule.scheduleid} className="hover:bg-gray-50">
+                        <td className="py-2 px-4 border-b">
+                          {doctor ? `${doctor.lastname} ${doctor.firstname}` : 'Неизвестный врач'}
+                        </td>
+                        <td className="py-2 px-4 border-b">
+                          {new Date(schedule.date).toLocaleDateString()}
+                        </td>
+                        <td className="py-2 px-4 border-b">
+                          {schedule.starttime.slice(0, 5)}
+                        </td>
+                        <td className="py-2 px-4 border-b">
+                          {schedule.endtime.slice(0, 5)}
+                        </td>
+                        <td className="py-2 px-4 border-b">
+                          {eventType?.eventname || 'Неизвестный тип'}
+                        </td>
+                        <td className="py-2 px-4 border-b whitespace-nowrap">
+                          <div className="flex space-x-2">
+                            <Button
+                              onClick={() => openModal(schedule)}
+                              className="mr-2 bg-blue-600 hover:bg-blue-700"
+                            >
+                              Редактировать
+                            </Button>
+                            <Button
+                              onClick={() => handleDelete(schedule.scheduleid)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Удалить
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="py-4 text-center text-gray-500">
+                      {schedules.length === 0 ? "Нет данных о расписаниях" : "Ничего не найдено"}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Модальное окно для добавления/редактирования расписания */}
         <Modal isOpen={isModalOpen} onClose={closeModal}>
           <div className="p-6">
             <h2 className="text-xl font-semibold mb-4">
               {currentSchedule ? "Редактировать расписание" : "Добавить расписание"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Врач *</label>
+                <Input
+                  type="text"
+                  placeholder="Поиск врача..."
+                  value={doctorSearch}
+                  onChange={handleDoctorSearchChange}
+                  className="w-full"
+                />
+                {selectedDoctorName && (
+                  <div className="p-2 bg-gray-100 rounded">
+                    Выбран: {selectedDoctorName}
+                  </div>
+                )}
+                <div className="max-h-60 overflow-y-auto border rounded">
+                  {filteredDoctors.map(doctor => (
+                    <div 
+                      key={doctor.userid}
+                      className={`p-2 hover:bg-blue-50 cursor-pointer ${formData.doctorid === doctor.userid ? 'bg-blue-100' : ''}`}
+                      onClick={() => handleSelectDoctor(doctor.userid, `${doctor.lastname} ${doctor.firstname}`)}
+                    >
+                      {doctor.lastname} {doctor.firstname}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <Input
-                label="Врач"
-                name="doctorid"
-                value={formData.doctorid}
-                onChange={handleInputChange}
-                type="select"
-              >
-                <option value="">Выберите врача</option>
-                {doctors.map((doctor) => (
-                  <option key={doctor.userid} value={doctor.userid}>
-                    {doctor.lastname} {doctor.firstname}
-                  </option>
-                ))}
-              </Input>
-              <Input
-                label="Дата"
+                label="Дата *"
                 name="date"
                 value={formData.date}
                 onChange={handleInputChange}
@@ -267,7 +436,7 @@ const ManageSchedules = () => {
                 required
               />
               <Input
-                label="Начало"
+                label="Начало *"
                 name="starttime"
                 value={formData.starttime}
                 onChange={handleInputChange}
@@ -275,7 +444,7 @@ const ManageSchedules = () => {
                 required
               />
               <Input
-                label="Конец"
+                label="Конец *"
                 name="endtime"
                 value={formData.endtime}
                 onChange={handleInputChange}
@@ -283,11 +452,12 @@ const ManageSchedules = () => {
                 required
               />
               <Input
-                label="Тип события"
+                label="Тип события *"
                 name="eventtypeid"
                 value={formData.eventtypeid}
                 onChange={handleInputChange}
                 type="select"
+                required
               >
                 <option value="">Выберите тип события</option>
                 {eventTypes.map((eventType) => (

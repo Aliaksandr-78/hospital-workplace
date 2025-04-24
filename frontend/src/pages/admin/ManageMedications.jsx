@@ -20,6 +20,7 @@ import Select from "../../components/Select";
 
 const ManageMedications = () => {
   const [medications, setMedications] = useState([]);
+  const [filteredMedications, setFilteredMedications] = useState([]);
   const [contraindications, setContraindications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [contraindicationsLoading, setContraindicationsLoading] = useState(false);
@@ -46,6 +47,11 @@ const ManageMedications = () => {
     Description: "",
     RBReference: ""
   });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchCategory, setSearchCategory] = useState("");
+  const [searchPrescription, setSearchPrescription] = useState("all");
+  const [sortField, setSortField] = useState("medicationid");
+  const [sortDirection, setSortDirection] = useState("asc");
 
   const medicationCategories = [
     { value: "Антибиотики", label: "Антибиотики" },
@@ -66,12 +72,19 @@ const ManageMedications = () => {
     { value: "высокая", label: "Высокая" }
   ];
 
+  const prescriptionOptions = [
+    { value: "all", label: "Все" },
+    { value: "yes", label: "Только рецептурные" },
+    { value: "no", label: "Только безрецептурные" }
+  ];
+
   useEffect(() => {
     const fetchMedications = async () => {
       try {
         setLoading(true);
         const data = await getAllMedications();
         setMedications(data);
+        setFilteredMedications(data);
       } catch (error) {
         console.error("Ошибка при загрузке лекарств:", error);
         setError("Не удалось загрузить лекарства. Пожалуйста, попробуйте позже.");
@@ -82,6 +95,51 @@ const ManageMedications = () => {
 
     fetchMedications();
   }, []);
+
+  // Фильтрация и сортировка
+  useEffect(() => {
+    let result = [...medications];
+    
+    // Фильтрация по поисковому запросу
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(medication => 
+        medication.name.toLowerCase().includes(term) ||
+        (medication.description && medication.description.toLowerCase().includes(term)) ||
+        (medication.rbregistrationnumber && medication.rbregistrationnumber.toLowerCase().includes(term)
+      ));
+    }
+    
+    // Фильтрация по категории
+    if (searchCategory) {
+      result = result.filter(medication => 
+        medication.category === searchCategory
+      );
+    }
+    
+    // Фильтрация по рецептурности
+    if (searchPrescription !== "all") {
+      const isPrescription = searchPrescription === "yes";
+      result = result.filter(medication => 
+        medication.isprescriptiononly === isPrescription
+      );
+    }
+    
+    // Сортировка
+    result.sort((a, b) => {
+      let fieldA = a[sortField];
+      let fieldB = b[sortField];
+      
+      if (typeof fieldA === 'string') fieldA = fieldA.toLowerCase();
+      if (typeof fieldB === 'string') fieldB = fieldB.toLowerCase();
+      
+      if (fieldA < fieldB) return sortDirection === "asc" ? -1 : 1;
+      if (fieldA > fieldB) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+    
+    setFilteredMedications(result);
+  }, [medications, searchTerm, searchCategory, searchPrescription, sortField, sortDirection]);
 
   const fetchContraindications = async (medicationID) => {
     try {
@@ -200,6 +258,27 @@ const ManageMedications = () => {
     }));
   };
 
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleCategoryChange = (value) => {
+    setSearchCategory(value);
+  };
+
+  const handlePrescriptionChange = (value) => {
+    setSearchPrescription(value);
+  };
+
+  const handleSort = (field) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const medicationData = {
@@ -277,6 +356,11 @@ const ManageMedications = () => {
     }
   };
 
+  const SortIndicator = ({ field }) => {
+    if (sortField !== field) return null;
+    return sortDirection === "asc" ? "↑" : "↓";
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Header appName="Управление лекарственными средствами" />
@@ -289,7 +373,28 @@ const ManageMedications = () => {
         {loading && <Loader className="flex justify-center my-8" />}
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-between mb-4">
+          <div className="flex space-x-4">
+            <Input
+              type="text"
+              placeholder="Поиск по названию..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              className="w-64"
+            />
+            <Select
+              options={[{ value: "", label: "Все категории" }, ...medicationCategories]}
+              value={searchCategory}
+              onChange={handleCategoryChange}
+              className="w-64"
+            />
+            <Select
+              options={prescriptionOptions}
+              value={searchPrescription}
+              onChange={handlePrescriptionChange}
+              className="w-64"
+            />
+          </div>
           <Button onClick={() => openModal()} className="bg-green-600 hover:bg-green-700">
             Добавить лекарство
           </Button>
@@ -299,44 +404,72 @@ const ManageMedications = () => {
           <table className="min-w-full bg-white">
             <thead>
               <tr>
-                <th className="py-2 px-4 border-b">ID</th>
-                <th className="py-2 px-4 border-b">Название</th>
-                <th className="py-2 px-4 border-b">Категория</th>
-                <th className="py-2 px-4 border-b">Рецептурный</th>
+                <th 
+                  className="py-2 px-4 border-b cursor-pointer" 
+                  onClick={() => handleSort("medicationid")}
+                >
+                  ID <SortIndicator field="medicationid" />
+                </th>
+                <th 
+                  className="py-2 px-4 border-b cursor-pointer" 
+                  onClick={() => handleSort("name")}
+                >
+                  Название <SortIndicator field="name" />
+                </th>
+                <th 
+                  className="py-2 px-4 border-b cursor-pointer" 
+                  onClick={() => handleSort("category")}
+                >
+                  Категория <SortIndicator field="category" />
+                </th>
+                <th 
+                  className="py-2 px-4 border-b cursor-pointer" 
+                  onClick={() => handleSort("isprescriptiononly")}
+                >
+                  Рецептурный <SortIndicator field="isprescriptiononly" />
+                </th>
                 <th className="py-2 px-4 border-b">Действия</th>
               </tr>
             </thead>
             <tbody>
-              {medications.map(medication => (
-                <tr key={medication.medicationid} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{medication.medicationid}</td>
-                  <td className="py-2 px-4 border-b">{medication.name}</td>
-                  <td className="py-2 px-4 border-b">{medication.category || "-"}</td>
-                  <td className="py-2 px-4 border-b">
-                    {medication.isprescriptiononly ? "Да" : "Нет"}
-                  </td>
-                  <td className="py-2 px-4 border-b space-x-2">
-                    <Button
-                      onClick={() => openDetailModal(medication)}
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      Подробнее
-                    </Button>
-                    <Button
-                      onClick={() => openModal(medication)}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Редактировать
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(medication.medicationid)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Удалить
-                    </Button>
+              {filteredMedications.length > 0 ? (
+                filteredMedications.map(medication => (
+                  <tr key={medication.medicationid} className="hover:bg-gray-50">
+                    <td className="py-2 px-4 border-b">{medication.medicationid}</td>
+                    <td className="py-2 px-4 border-b">{medication.name}</td>
+                    <td className="py-2 px-4 border-b">{medication.category || "-"}</td>
+                    <td className="py-2 px-4 border-b">
+                      {medication.isprescriptiononly ? "Да" : "Нет"}
+                    </td>
+                    <td className="py-2 px-4 border-b space-x-2">
+                      <Button
+                        onClick={() => openDetailModal(medication)}
+                        className="bg-purple-600 hover:bg-purple-700"
+                      >
+                        Подробнее
+                      </Button>
+                      <Button
+                        onClick={() => openModal(medication)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Редактировать
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(medication.medicationid)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Удалить
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="py-4 text-center text-gray-500">
+                    Лекарства не найдены
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

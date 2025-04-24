@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import PropTypes from "prop-types"
 import {
   getAllDiagnoses,
   createDiagnosis,
@@ -11,6 +12,7 @@ import {
   updateDiagnosisMedication,
   deleteDiagnosisMedication,
 } from "../../api/diagnosisMedicationApi"
+import { getAllMedications } from "../../api/medicationApi"
 import Button from "../../components/Button"
 import Header from "../../components/Header"
 import Loader from "../../components/Loader"
@@ -19,7 +21,9 @@ import Input from "../../components/Input"
 
 const ManageDiagnosis = () => {
   const [diagnoses, setDiagnoses] = useState([])
+  const [filteredDiagnoses, setFilteredDiagnoses] = useState([])
   const [medications, setMedications] = useState([])
+  const [allMedications, setAllMedications] = useState([])
   const [loading, setLoading] = useState(true)
   const [medicationsLoading, setMedicationsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -41,41 +45,110 @@ const ManageDiagnosis = () => {
     IsFirstLine: false,
     ProtocolReference: ""
   })
+  const [searchTerm, setSearchTerm] = useState("")
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
+  const [medicationSearch, setMedicationSearch] = useState("")
+  const [filteredMedicationsList, setFilteredMedicationsList] = useState([])
 
   useEffect(() => {
-    const fetchDiagnoses = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
-        const data = await getAllDiagnoses()
-        setDiagnoses(data)
+        const [diagnosesData, medicationsData] = await Promise.all([
+          getAllDiagnoses(),
+          getAllMedications()
+        ])
+        setDiagnoses(diagnosesData)
+        setFilteredDiagnoses(diagnosesData)
+        setAllMedications(medicationsData)
+        setFilteredMedicationsList(medicationsData)
       } catch (error) {
-        console.error("Ошибка при загрузке диагнозов:", error)
-        setError("Не удалось загрузить диагнозы. Пожалуйста, попробуйте позже.")
+        console.error("Ошибка при загрузке данных:", error)
+        setError("Не удалось загрузить данные. Пожалуйста, попробуйте позже.")
       } finally {
         setLoading(false)
       }
     }
 
-    fetchDiagnoses()
+    fetchData()
   }, [])
+
+  useEffect(() => {
+    filterAndSortDiagnoses()
+  }, [diagnoses, searchTerm, sortConfig])
+
+  useEffect(() => {
+    if (allMedications.length > 0) {
+      setFilteredMedicationsList(
+        allMedications.filter(med => 
+          med.name.toLowerCase().includes(medicationSearch.toLowerCase()) ||
+          med.rbregistrationnumber?.toLowerCase().includes(medicationSearch.toLowerCase())
+        )
+      )
+    }
+  }, [medicationSearch, allMedications])
+
+  const filterAndSortDiagnoses = () => {
+    let result = [...diagnoses]
+    
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase()
+      result = result.filter(diagnosis => 
+        diagnosis.name.toLowerCase().includes(searchLower) ||
+        diagnosis.icd10code.toLowerCase().includes(searchLower))
+    }
+    
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        const valueA = a[sortConfig.key]
+        const valueB = b[sortConfig.key]
+        
+        if (valueA < valueB) {
+          return sortConfig.direction === 'asc' ? -1 : 1
+        }
+        if (valueA > valueB) {
+          return sortConfig.direction === 'asc' ? 1 : -1
+        }
+        return 0
+      })
+    }
+    
+    setFilteredDiagnoses(result)
+  }
+
+  const requestSort = (key) => {
+    let direction = 'asc'
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc'
+    }
+    setSortConfig({ key, direction })
+  }
+
+  const SortIndicator = ({ field }) => {
+    if (sortConfig.key !== field) return null
+    return sortConfig.direction === 'asc' ? '↑' : '↓'
+  }
+
+  SortIndicator.propTypes = {
+    field: PropTypes.string.isRequired
+  }
 
   const fetchMedications = async (diagnosisID) => {
     try {
-      setMedicationsLoading(true);
-      const data = await getMedicationsByDiagnosis(diagnosisID);
-      setMedications(data || []); // Устанавливаем пустой массив, если data undefined/null
+      setMedicationsLoading(true)
+      const data = await getMedicationsByDiagnosis(diagnosisID)
+      setMedications(data || [])
     } catch (error) {
       if (error.response?.status === 404) {
-        // Если лекарства не найдены (404), устанавливаем пустой массив
-        setMedications([]);
+        setMedications([])
       } else {
-        console.error("Ошибка при загрузке лекарств:", error);
-        setError("Не удалось загрузить рекомендуемые лекарства.");
+        console.error("Ошибка при загрузке лекарств:", error)
+        setError("Не удалось загрузить рекомендуемые лекарства.")
       }
     } finally {
-      setMedicationsLoading(false);
+      setMedicationsLoading(false)
     }
-  };
+  }
 
   const openModal = (diagnosis = null) => {
     setCurrentDiagnosis(diagnosis)
@@ -107,7 +180,6 @@ const ManageDiagnosis = () => {
 
   const openMedicationModal = (medication = null, diagnosisID) => {
     setCurrentMedication(medication)
-    // Не перезаписываем currentDiagnosis, только устанавливаем diagnosisid если нужно
     if (!currentDiagnosis || currentDiagnosis.diagnosisid !== diagnosisID) {
       setCurrentDiagnosis({ diagnosisid: diagnosisID })
     }
@@ -126,6 +198,9 @@ const ManageDiagnosis = () => {
             ProtocolReference: ""
           }
     )
+    setMedicationSearch(medication ? 
+      allMedications.find(m => m.medicationid === medication.medicationid)?.name || "" 
+      : "")
     setMedicationModalOpen(true)
   }
 
@@ -156,6 +231,7 @@ const ManageDiagnosis = () => {
       IsFirstLine: false,
       ProtocolReference: ""
     })
+    setMedicationSearch("")
   }
 
   const handleInputChange = (e) => {
@@ -172,6 +248,25 @@ const ManageDiagnosis = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }))
+  }
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value)
+  }
+
+  const handleMedicationSearchChange = (e) => {
+    setMedicationSearch(e.target.value)
+  }
+
+  const handleSelectMedication = (medicationId) => {
+    setMedicationFormData(prev => ({
+      ...prev,
+      MedicationID: medicationId
+    }))
+    const selectedMed = allMedications.find(m => m.medicationid === medicationId)
+    if (selectedMed) {
+      setMedicationSearch(selectedMed.name)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -205,6 +300,11 @@ const ManageDiagnosis = () => {
 
   const handleMedicationSubmit = async (e) => {
     e.preventDefault()
+    if (!medicationFormData.MedicationID) {
+      setError("Пожалуйста, выберите лекарство")
+      return
+    }
+
     const medicationData = {
       MedicationID: medicationFormData.MedicationID,
       Confidence: parseFloat(medicationFormData.Confidence),
@@ -245,21 +345,33 @@ const ManageDiagnosis = () => {
 
   const handleDeleteMedication = async (diagnosisID, medicationID) => {
     try {
+      setMedicationsLoading(true);
+      
+      // Удаляем связь на сервере
       await deleteDiagnosisMedication(diagnosisID, medicationID);
       
-      // Обновляем список лекарств в модальном окне
-      const updatedMedications = medications.filter(m => m.medicationId !== medicationID);
-      setMedications(updatedMedications);
+      // Обновляем данные с сервера
+      await fetchMedications(diagnosisID);
       
-      // Если лекарств не осталось, можно закрыть модальное окно
-      if (updatedMedications.length === 0) {
+      setError(""); // Очищаем ошибки
+      
+      // Если это было последнее лекарство, закрываем модальное окно
+      if (medications.length <= 1) {
         closeDetailModal();
       }
     } catch (error) {
       console.error("Ошибка при удалении связи:", error);
-      setError("Не удалось удалить связь. Пожалуйста, попробуйте позже.");
+      setError(error.response?.data?.message || "Не удалось удалить связь");
+    } finally {
+      setMedicationsLoading(false);
     }
   };
+
+  const getSelectedMedicationName = () => {
+    if (!medicationFormData.MedicationID) return null
+    const med = allMedications.find(m => m.medicationid === medicationFormData.MedicationID)
+    return med ? med.name : null
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -273,7 +385,14 @@ const ManageDiagnosis = () => {
         {loading && <Loader className="flex justify-center my-8" />}
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-between mb-4">
+          <Input
+            type="text"
+            placeholder="Поиск по названию или коду"
+            value={searchTerm}
+            onChange={handleSearchChange}
+            className="w-64"
+          />
           <Button onClick={() => openModal()} className="bg-green-600 hover:bg-green-700">
             Добавить диагноз
           </Button>
@@ -283,40 +402,63 @@ const ManageDiagnosis = () => {
           <table className="min-w-full bg-white">
             <thead>
               <tr>
-                <th className="py-2 px-4 border-b">ID</th>
-                <th className="py-2 px-4 border-b">Код МКБ-10</th>
-                <th className="py-2 px-4 border-b">Название</th>
+                <th 
+                  className="py-2 px-4 border-b cursor-pointer" 
+                  onClick={() => requestSort("diagnosisid")}
+                >
+                  ID <SortIndicator field="diagnosisid" />
+                </th>
+                <th 
+                  className="py-2 px-4 border-b cursor-pointer" 
+                  onClick={() => requestSort("icd10code")}
+                >
+                  Код МКБ-10 <SortIndicator field="icd10code" />
+                </th>
+                <th 
+                  className="py-2 px-4 border-b cursor-pointer" 
+                  onClick={() => requestSort("name")}
+                >
+                  Название <SortIndicator field="name" />
+                </th>
                 <th className="py-2 px-4 border-b">Действия</th>
               </tr>
             </thead>
             <tbody>
-              {diagnoses.map(diagnosis => (
-                <tr key={diagnosis.diagnosisid} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{diagnosis.diagnosisid}</td>
-                  <td className="py-2 px-4 border-b font-mono">{diagnosis.icd10code}</td>
-                  <td className="py-2 px-4 border-b">{diagnosis.name}</td>
-                  <td className="py-2 px-4 border-b space-x-2">
-                    <Button
-                      onClick={() => openDetailModal(diagnosis)}
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      Подробнее
-                    </Button>
-                    <Button
-                      onClick={() => openModal(diagnosis)}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Редактировать
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(diagnosis.diagnosisid)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Удалить
-                    </Button>
+              {filteredDiagnoses.length > 0 ? (
+                filteredDiagnoses.map(diagnosis => (
+                  <tr key={diagnosis.diagnosisid} className="hover:bg-gray-50">
+                    <td className="py-2 px-4 border-b">{diagnosis.diagnosisid}</td>
+                    <td className="py-2 px-4 border-b font-mono">{diagnosis.icd10code}</td>
+                    <td className="py-2 px-4 border-b">{diagnosis.name}</td>
+                    <td className="py-2 px-4 border-b space-x-2">
+                      <Button
+                        onClick={() => openDetailModal(diagnosis)}
+                        className="bg-purple-600 hover:bg-purple-700"
+                      >
+                        Подробнее
+                      </Button>
+                      <Button
+                        onClick={() => openModal(diagnosis)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Редактировать
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(diagnosis.diagnosisid)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Удалить
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="py-4 text-center text-gray-500">
+                    Диагнозы не найдены
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -510,14 +652,32 @@ const ManageDiagnosis = () => {
               {currentMedication ? "Редактировать связь" : "Добавить лекарство"}
             </h2>
             <form onSubmit={handleMedicationSubmit} className="space-y-4">
-              <Input
-                label="ID лекарства*"
-                name="MedicationID"
-                value={medicationFormData.MedicationID}
-                onChange={handleMedicationInputChange}
-                placeholder="Введите ID лекарства"
-                required
-              />
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Лекарство*</label>
+                <Input
+                  type="text"
+                  placeholder="Поиск лекарства..."
+                  value={medicationSearch}
+                  onChange={handleMedicationSearchChange}
+                  className="w-full"
+                />
+                {medicationFormData.MedicationID && (
+                  <div className="p-2 bg-gray-100 rounded">
+                    Выбрано: {getSelectedMedicationName()}
+                  </div>
+                )}
+                <div className="max-h-60 overflow-y-auto border rounded">
+                  {filteredMedicationsList.map(medication => (
+                    <div 
+                      key={medication.medicationid}
+                      className={`p-2 hover:bg-blue-50 cursor-pointer ${medicationFormData.MedicationID === medication.medicationid ? 'bg-blue-100' : ''}`}
+                      onClick={() => handleSelectMedication(medication.medicationid)}
+                    >
+                      {medication.name} ({medication.rbregistrationnumber || "нет рег. номера"})
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <Input
                 label="Уверенность (0-1)*"

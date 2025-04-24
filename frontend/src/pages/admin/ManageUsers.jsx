@@ -8,7 +8,6 @@ import {
 import { getAllRoles } from "../../api/roleApi";
 import {
   getUserRolesByUserId,
-  // assignUserRole,
   removeUserRole,
   updateUserRoles,
 } from "../../api/userRoleApi";
@@ -22,6 +21,7 @@ import Select from "../../components/Select";
 
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [specialties, setSpecialties] = useState([]);
   const [userRolesMap, setUserRolesMap] = useState({});
@@ -41,6 +41,12 @@ const ManageUsers = () => {
     roles: [],
     password: "",
   });
+
+  // Состояния для поиска и сортировки
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [specialtyFilter, setSpecialtyFilter] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   // Получение ролей пользователя
   const getUserRoles = async (userid) => {
@@ -94,6 +100,82 @@ const ManageUsers = () => {
     fetchData();
   }, []);
 
+  // Фильтрация и сортировка пользователей
+  useEffect(() => {
+    let result = [...users];
+    
+    // Фильтрация по поисковому запросу (ФИО, email)
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      result = result.filter(user => 
+        `${user.firstname} ${user.middlename || ''} ${user.lastname} ${user.email}`
+          .toLowerCase()
+          .includes(searchLower)
+      );
+    }
+    
+    // Фильтрация по роли
+    if (roleFilter) {
+      result = result.filter(user => {
+        const userRoles = userRolesMap[user.userid] || [];
+        return userRoles.some(role => role.roleid.toString() === roleFilter);
+      });
+    }
+    
+    // Фильтрация по специальности
+    if (specialtyFilter) {
+      result = result.filter(user => 
+        user.specialtyid && user.specialtyid.toString() === specialtyFilter
+      );
+    }
+    
+    // Сортировка
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        let valueA, valueB;
+        
+        if (sortConfig.key === 'name') {
+          valueA = `${a.lastname} ${a.firstname} ${a.middlename || ''}`;
+          valueB = `${b.lastname} ${b.firstname} ${b.middlename || ''}`;
+        } else if (sortConfig.key === 'roles') {
+          const rolesA = (userRolesMap[a.userid] || []).map(r => r.rolename).join(', ');
+          const rolesB = (userRolesMap[b.userid] || []).map(r => r.rolename).join(', ');
+          valueA = rolesA;
+          valueB = rolesB;
+        } else if (sortConfig.key === 'specialty') {
+          valueA = getSpecialtyName(a.specialtyid);
+          valueB = getSpecialtyName(b.specialtyid);
+        } else {
+          valueA = a[sortConfig.key];
+          valueB = b[sortConfig.key];
+        }
+        
+        if (valueA < valueB) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    
+    setFilteredUsers(result);
+  }, [users, userRolesMap, searchTerm, roleFilter, specialtyFilter, sortConfig]);
+
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIndicator = (key) => {
+    if (sortConfig.key !== key) return null;
+    return sortConfig.direction === 'asc' ? ' ↑' : ' ↓';
+  };
+
   // Получение названия специальности по ID
   const getSpecialtyName = (specialtyid) => {
     const specialty = specialties.find((spec) => spec.specialtyid === specialtyid);
@@ -103,12 +185,10 @@ const ManageUsers = () => {
   // Обработчик открытия модального окна для добавления/редактирования
   const openModal = async (user = null) => {
     if (user) {
-      // Загружаем роли пользователя
       const userRoles = await getUserRoles(user.userid);
   
-      // Преобразуем дату в локальное время
       const formattedDateOfBirth = user.dateofbirth
-        ? new Date(user.dateofbirth).toLocaleDateString("en-CA") // Формат yyyy-MM-dd
+        ? new Date(user.dateofbirth).toLocaleDateString("en-CA")
         : "";
   
       setFormData({
@@ -117,11 +197,11 @@ const ManageUsers = () => {
         lastName: user.lastname,
         email: user.email,
         phoneNumber: user.phonenumber || "",
-        dateOfBirth: formattedDateOfBirth, // Используем отформатированную дату
+        dateOfBirth: formattedDateOfBirth,
         specialtyID: user.specialtyid || "",
         isActive: user.isactive,
         roles: userRoles.map((role) => role.roleid),
-        password: "", // Пароль не заполняется при редактировании
+        password: "",
       });
     } else {
       setFormData({
@@ -134,7 +214,7 @@ const ManageUsers = () => {
         specialtyID: "",
         isActive: true,
         roles: [],
-        password: "", // Пустой пароль для нового пользователя
+        password: "",
       });
     }
     setCurrentUser(user);
@@ -253,6 +333,12 @@ const ManageUsers = () => {
     return roles.map((role) => role.rolename).join(", ");
   };
 
+  const resetFilters = () => {
+    setSearchTerm("");
+    setRoleFilter("");
+    setSpecialtyFilter("");
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Header appName="Управление пользователями" />
@@ -262,7 +348,52 @@ const ManageUsers = () => {
         </h1>
         {loading && <Loader className="flex justify-center my-8" />}
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-        <div className="flex justify-end mb-4">
+        
+        {/* Панель поиска и фильтрации */}
+        <div className="flex justify-between mb-4 flex-wrap gap-4">
+          <div className="flex space-x-4 flex-wrap">
+            <Input
+              type="text"
+              placeholder="Поиск по ФИО или email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-64"
+            />
+            <Input
+              name="roleFilter"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              type="select"
+            >
+              <option value="">Все роли</option>
+              {roles.map((role) => (
+                <option key={role.roleid} value={role.roleid}>
+                  {role.rolename}
+                </option>
+              ))}
+            </Input>
+            <Input
+              name="specialtyFilter"
+              value={specialtyFilter}
+              onChange={(e) => setSpecialtyFilter(e.target.value)}
+              type="select"
+            >
+              <option value="">Все специальности</option>
+              {specialties.map((spec) => (
+                <option key={spec.specialtyid} value={spec.specialtyid}>
+                  {spec.specialtyname}
+                </option>
+              ))}
+            </Input>
+            {(searchTerm || roleFilter || specialtyFilter) && (
+              <Button 
+                onClick={resetFilters}
+                className="bg-gray-600 hover:bg-gray-700"
+              >
+                Сбросить фильтры
+              </Button>
+            )}
+          </div>
           <Button
             onClick={() => openModal()}
             className="bg-green-600 hover:bg-green-700"
@@ -270,56 +401,74 @@ const ManageUsers = () => {
             Добавить пользователя
           </Button>
         </div>
+
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <table className="min-w-full bg-white">
-            <thead>
-              <tr>
-                <th className="py-2 px-4 border-b">ID</th>
-                <th className="py-2 px-4 border-b">Имя</th>
-                <th className="py-2 px-4 border-b">Email</th>
-                <th className="py-2 px-4 border-b">Роли</th>
-                <th className="py-2 px-4 border-b">Специальность</th>
-                <th className="py-2 px-4 border-b">Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.length > 0 ? (
-                users.map((user) => (
-                  <tr key={user.userid} className="hover:bg-gray-50">
-                    <td className="py-2 px-4 border-b">{user.userid}</td>
-                    <td className="py-2 px-4 border-b">
-                      {user.firstname} {user.middlename} {user.lastname}
-                    </td>
-                    <td className="py-2 px-4 border-b">{user.email}</td>
-                    <td className="py-2 px-4 border-b">{renderRoles(user.userid)}</td>
-                    <td className="py-2 px-4 border-b">
-                      {getSpecialtyName(user.specialtyid)}
-                    </td>
-                    <td className="py-2 px-4 border-b">
-                      <Button
-                        onClick={() => openModal(user)}
-                        className="mr-2 bg-blue-600 hover:bg-blue-700"
-                      >
-                        Редактировать
-                      </Button>
-                      <Button
-                        onClick={() => handleDelete(user.userid)}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Удалить
-                      </Button>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              <thead>
+                <tr>
+                  <th className="py-2 px-4 border-b">ID</th>
+                  <th 
+                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    onClick={() => requestSort('name')}
+                  >
+                    ФИО {getSortIndicator('name')}
+                  </th>
+                  <th className="py-2 px-4 border-b">Email</th>
+                  <th 
+                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    onClick={() => requestSort('roles')}
+                  >
+                    Роли {getSortIndicator('roles')}
+                  </th>
+                  <th 
+                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    onClick={() => requestSort('specialty')}
+                  >
+                    Специальность {getSortIndicator('specialty')}
+                  </th>
+                  <th className="py-2 px-4 border-b">Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => (
+                    <tr key={user.userid} className="hover:bg-gray-50">
+                      <td className="py-2 px-4 border-b">{user.userid}</td>
+                      <td className="py-2 px-4 border-b">
+                        {user.firstname} {user.middlename} {user.lastname}
+                      </td>
+                      <td className="py-2 px-4 border-b">{user.email}</td>
+                      <td className="py-2 px-4 border-b">{renderRoles(user.userid)}</td>
+                      <td className="py-2 px-4 border-b">
+                        {getSpecialtyName(user.specialtyid)}
+                      </td>
+                      <td className="py-2 px-4 border-b">
+                        <Button
+                          onClick={() => openModal(user)}
+                          className="mr-2 bg-blue-600 hover:bg-blue-700"
+                        >
+                          Редактировать
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(user.userid)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Удалить
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="text-center py-4">
+                      {users.length === 0 ? "Нет данных о пользователях" : "Ничего не найдено"}
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="text-center py-4">
-                    Нет данных о пользователях.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
         <Modal isOpen={isModalOpen} onClose={closeModal}>
           <div className="p-6">

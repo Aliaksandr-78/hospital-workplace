@@ -12,13 +12,14 @@ import Modal from "../../components/Modal"
 import Input from "../../components/Input"
 
 const ManageSpecialties = () => {
-
-  const [specialties, setSpecialties] = useState([]) // Состояние для списка специальностей
-  const [loading, setLoading] = useState(true) // Состояние для загрузки
-  const [error, setError] = useState("") // Состояние для ошибок
-  const [isModalOpen, setModalOpen] = useState(false) // Состояние для модального окна
-  const [currentSpecialty, setCurrentSpecialty] = useState(null) // Состояние для текущей специальности (редактирование/добавление)
-  const [formData, setFormData] = useState({ SpecialtyName: "", Description: "" }) // Состояние для данных формы
+  const [specialties, setSpecialties] = useState([])
+  const [filteredSpecialties, setFilteredSpecialties] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [isModalOpen, setModalOpen] = useState(false)
+  const [currentSpecialty, setCurrentSpecialty] = useState(null)
+  const [formData, setFormData] = useState({ SpecialtyName: "", Description: "" })
+  const [searchTerm, setSearchTerm] = useState("") // Состояние для поискового запроса
 
   // Загрузка данных при монтировании компонента
   useEffect(() => {
@@ -27,6 +28,7 @@ const ManageSpecialties = () => {
         setLoading(true)
         const data = await getAllSpecialties()
         setSpecialties(data)
+        setFilteredSpecialties(data) // Инициализируем отфильтрованный список
       } catch (error) {
         console.error("Ошибка при загрузке специальностей:", error)
         setError("Не удалось загрузить специальности. Пожалуйста, попробуйте позже.")
@@ -38,6 +40,23 @@ const ManageSpecialties = () => {
     fetchSpecialties()
   }, [])
 
+  // Фильтрация специальностей при изменении поискового запроса
+  useEffect(() => {
+    if (searchTerm) {
+      const filtered = specialties.filter(specialty =>
+        specialty.specialtyname.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      setFilteredSpecialties(filtered)
+    } else {
+      setFilteredSpecialties(specialties)
+    }
+  }, [searchTerm, specialties])
+
+  // Обработчик изменения поискового запроса
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value)
+  }
+
   // Обработчик открытия модального окна для добавления/редактирования
   const openModal = (specialty = null) => {
     setCurrentSpecialty(specialty)
@@ -45,7 +64,7 @@ const ManageSpecialties = () => {
       specialty
         ? { SpecialtyName: specialty.specialtyname, Description: specialty.description }
         : { SpecialtyName: "", Description: "" }
-    );
+    )
     setModalOpen(true)
   }
 
@@ -94,13 +113,13 @@ const ManageSpecialties = () => {
   // Обработчик удаления специальности
   const handleDelete = async (specialtyID) => {
     try {
-      await deleteSpecialty(specialtyID);
-      setSpecialties((prev) => prev.filter((specialty) => specialty.specialtyid !== specialtyID));
+      await deleteSpecialty(specialtyID)
+      setSpecialties((prev) => prev.filter((specialty) => specialty.specialtyid !== specialtyID))
     } catch (error) {
-      console.error("Ошибка при удалении специальности:", error);
-      setError("Не удалось удалить специальность. Пожалуйста, попробуйте позже.");
+      console.error("Ошибка при удалении специальности:", error)
+      setError("Не удалось удалить специальность. Пожалуйста, попробуйте позже.")
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -119,8 +138,15 @@ const ManageSpecialties = () => {
         {/* Сообщение об ошибке */}
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-        {/* Кнопка добавления новой специальности */}
-        <div className="flex justify-end mb-4">
+        {/* Панель поиска и добавления */}
+        <div className="flex justify-between mb-4">
+          <Input
+            type="text"
+            placeholder="Поиск по названию специальности..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            className="w-64"
+          />
           <Button onClick={() => openModal()} className="bg-green-600 hover:bg-green-700">
             Добавить специальность
           </Button>
@@ -138,27 +164,35 @@ const ManageSpecialties = () => {
               </tr>
             </thead>
             <tbody>
-              {specialties.map((specialty) => (
-                <tr key={specialty.SpecialtyID} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{specialty.specialtyid}</td>
-                  <td className="py-2 px-4 border-b">{specialty.specialtyname}</td>
-                  <td className="py-2 px-4 border-b">{specialty.description}</td>
-                  <td className="py-2 px-4 border-b">
-                    <Button
-                      onClick={() => openModal(specialty)}
-                      className="mr-2 bg-blue-600 hover:bg-blue-700"
-                    >
-                      Редактировать
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(specialty.specialtyid)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Удалить
-                    </Button>
+              {filteredSpecialties.length > 0 ? (
+                filteredSpecialties.map((specialty) => (
+                  <tr key={specialty.specialtyid} className="hover:bg-gray-50">
+                    <td className="py-2 px-4 border-b">{specialty.specialtyid}</td>
+                    <td className="py-2 px-4 border-b">{specialty.specialtyname}</td>
+                    <td className="py-2 px-4 border-b">{specialty.description}</td>
+                    <td className="py-2 px-4 border-b">
+                      <Button
+                        onClick={() => openModal(specialty)}
+                        className="mr-2 bg-blue-600 hover:bg-blue-700"
+                      >
+                        Редактировать
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(specialty.specialtyid)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Удалить
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="py-4 text-center text-gray-500">
+                    {specialties.length === 0 ? "Нет данных о специальностях" : "Ничего не найдено"}
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
