@@ -466,6 +466,7 @@ const ManageServices = () => {
                 onChange={handleInputChange}
                 placeholder="Введите стоимость"
                 required
+                min="0"
               />
               
               <div className="flex justify-end space-x-4">

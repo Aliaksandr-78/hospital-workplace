@@ -10,6 +10,7 @@ class MedicalAI {
     this.similarityEngine = new PatientSimilarityEngine();
     this.medications = new Map();
     this.diagnoses = new Map();
+    this.contraindications = new Map();
   }
 
   async initialize() {
@@ -35,8 +36,26 @@ class MedicalAI {
       diagnoses.forEach(d => {
         this.diagnoses.set(d.diagnosisid, d);
       });
+
+      // Загрузка лекарств
+      const { rows: medications } = await pool.query('SELECT * FROM medications');
+      medications.forEach(m => {
+        this.medications.set(m.medicationid, m);
+      });
+
+      // Загрузка противопоказаний
+      const { rows: contraindications } = await pool.query(`
+        SELECT * FROM medicationcontraindications
+      `);
+      contraindications.forEach(c => {
+        if (!this.contraindications.has(c.medicationid)) {
+          this.contraindications.set(c.medicationid, []);
+        }
+        this.contraindications.get(c.medicationid).push(c);
+      });
+
     } catch (err) {
-      console.error('Ошибка загрузки диагнозов:', err);
+      console.error('Ошибка загрузки данных:', err);
       throw err;
     }
   }
@@ -49,7 +68,6 @@ class MedicalAI {
 
   async _trainBayesClassifier() {
     try {
-      // Упрощенный запрос без фильтрации по дате
       const { rows } = await pool.query(`
         SELECT d.name as diagnosis, m.name as medication 
         FROM prescriptions p
@@ -101,13 +119,14 @@ class MedicalAI {
         SELECT 
           mre.diagnosisid,
           pf.featurevalue,
+          pf.featuretype,
           p.medicationid
         FROM prescriptions p
         JOIN medicalrecords mr ON p.patientid = mr.patientid
         JOIN medicalrecordentries mre ON mr.recordid = mre.recordid
         JOIN diagnoses d ON mre.diagnosisid = d.diagnosisid
         LEFT JOIN patientfeatures pf ON p.patientid = pf.patientid
-        WHERE pf.featuretype IN ('заболевание', 'аллергия')
+        WHERE pf.featuretype IN ('заболевание', 'аллергия', 'непереносимость', 'физиологическая особенность')
         LIMIT 1000
       `);
 
@@ -118,7 +137,7 @@ class MedicalAI {
 
       const features = rows.map(row => [
         row.diagnosisid,
-        row.featurevalue ? this._hashFeature(row.featurevalue) : 0
+        row.featurevalue ? this._hashFeature(row.featurevalue + row.featuretype) : 0
       ]);
 
       const labels = rows.map(row => row.medicationid);
@@ -147,23 +166,21 @@ class MedicalAI {
       };
 
       const diagnosis = this.diagnoses.get(id);
-      // Добавим проверку на наличие данных для моделей
       const hasBayesData = this.classifier.getClassifications(diagnosis.name).length > 0;
       const hasDecisionTreeData = this.decisionTree !== null;
-  
+
       const [protocolRecs, bayesRecs, dtRecs, similarRecs] = await Promise.all([
-        this._getProtocolRecs(diagnosisId),
+        this._getProtocolRecs(diagnosisId, patientId),
         hasBayesData ? this._getBayesRecs(diagnosis.name) : [],
         (patientId && hasDecisionTreeData) ? this._getDecisionTreeRecs(diagnosisId, patientId) : [],
         patientId ? this.similarityEngine.getSimilarRecs(patientId) : []
       ]);
-  
-      // Остальной код без изменений
+
       const combined = this._combineRecommendations(protocolRecs, bayesRecs, dtRecs, similarRecs);
       const filtered = patientId ? 
-        await this._filterContraindications(combined, patientId) : 
+        await this._filterRecommendations(combined, patientId) : 
         combined;
-  
+
       return {
         diagnosis: diagnosis.name,
         recommendations: filtered.slice(0, 10),
@@ -180,7 +197,7 @@ class MedicalAI {
     }
   }
 
-  async _getProtocolRecs(diagnosisId) {
+  async _getProtocolRecs(diagnosisId, patientId = null) {
     const { rows } = await pool.query(`
       SELECT m.medicationid, m.name, dm.isfirstline, dm.confidence
       FROM diagnosismedication dm
@@ -189,13 +206,26 @@ class MedicalAI {
       ORDER BY dm.isfirstline DESC, dm.confidence DESC
     `, [diagnosisId]);
 
+    if (!patientId) {
+      return rows.map(r => ({
+        MedicationID: r.medicationid,
+        name: r.name,
+        confidence: r.confidence,
+        isFirstLine: r.isfirstline,
+        source: 'protocol',
+        weight: r.isfirstline ? 0.9 : 0.7,
+        isSafe: true
+      }));
+    }
+
     return rows.map(r => ({
       MedicationID: r.medicationid,
       name: r.name,
       confidence: r.confidence,
       isFirstLine: r.isfirstline,
       source: 'protocol',
-      weight: r.isfirstline ? 0.9 : 0.7
+      weight: r.isfirstline ? 0.9 : 0.7,
+      isSafe: true // Предварительная отметка, проверка будет позже
     }));
   }
 
@@ -217,13 +247,13 @@ class MedicalAI {
 
   async _getDecisionTreeRecs(diagnosisId, patientId) {
     const { rows: features } = await pool.query(`
-      SELECT featurevalue FROM patientfeatures 
-      WHERE patientid = $1 AND featuretype IN ('заболевание', 'аллергия')
+      SELECT featurevalue, featuretype FROM patientfeatures 
+      WHERE patientid = $1 AND featuretype IN ('заболевание', 'аллергия', 'непереносимость', 'физиологическая особенность')
     `, [patientId]);
 
     const input = [
       diagnosisId,
-      features[0] ? this._hashFeature(features[0].featurevalue) : 0
+      features[0] ? this._hashFeature(features[0].featurevalue + features[0].featuretype) : 0
     ];
 
     const prediction = this.decisionTree.predict([input]);
@@ -238,25 +268,82 @@ class MedicalAI {
     }] : [];
   }
 
-  async _filterContraindications(recommendations, patientId) {
-    const { rows: contraindications } = await pool.query(`
-      SELECT mc.medicationid, mc.severity
-      FROM medicationcontraindications mc
-      JOIN patientfeatures pf ON mc.condition = pf.featurevalue
-      WHERE pf.patientid = $1 AND mc.medicationid = ANY($2)
-    `, [patientId, recommendations.map(r => r.MedicationID)]);
-
-    const contraindicated = new Set(contraindications.map(c => c.medicationid));
-
-    return recommendations
-      .map(r => ({
-        ...r,
-        isSafe: !contraindicated.has(r.MedicationID),
-        contraindications: contraindications
-          .filter(c => c.medicationid === r.MedicationID)
-      }))
-      .filter(r => r.isSafe)
-      .sort((a, b) => b.weight - a.weight || b.confidence - a.confidence);
+  async _filterRecommendations(recommendations, patientId) {
+    // Получаем все особенности пациента
+    const { rows: patientFeatures } = await pool.query(`
+      SELECT featurevalue, featuretype FROM patientfeatures 
+      WHERE patientid = $1
+    `, [patientId]);
+  
+    if (patientFeatures.length === 0) {
+      return recommendations.map(r => ({ ...r, isSafe: true, contraindications: [] }));
+    }
+  
+    const results = [];
+    
+    for (const rec of recommendations) {
+      const contraindications = this.contraindications.get(rec.MedicationID) || [];
+      const matchedContraindications = [];
+  
+      // Нормализуем особенности пациента для сравнения
+      const normalizedPatientFeatures = patientFeatures.map(pf => ({
+        type: pf.featuretype.toLowerCase(),
+        value: this._normalizeText(pf.featurevalue)
+      }));
+  
+      // Проверяем каждое противопоказание лекарства
+      for (const contra of contraindications) {
+        // Нормализуем данные противопоказания
+        const contraCondition = contra.condition ? this._normalizeText(contra.condition) : null;
+        const contraType = contra.condition_type ? contra.condition_type.toLowerCase() : null;
+        
+        // Проверяем по типу и значению особенности пациента
+        for (const pf of normalizedPatientFeatures) {
+          // Проверяем полное совпадение значения (например, "пенициллин")
+          const exactMatch = contraCondition && pf.value === contraCondition;
+          
+          // Проверяем частичное совпадение (например, "аллергия на пенициллин" содержит "пенициллин")
+          const partialMatch = contraCondition && pf.value.includes(contraCondition) || 
+                             contraCondition && contraCondition.includes(pf.value);
+          
+          // Проверяем совпадение по типу (например, "аллергия")
+          const typeMatch = contraType && pf.type === contraType;
+          
+          if (exactMatch || partialMatch || typeMatch) {
+            matchedContraindications.push({
+              condition: contra.condition || contra.condition_type,
+              severity: contra.severity,
+              type: pf.type
+            });
+            break;
+          }
+        }
+      }
+  
+      // Классифицируем противопоказания по степени тяжести
+      const highRisk = matchedContraindications.filter(c => c.severity === 'высокая');
+      const mediumRisk = matchedContraindications.filter(c => c.severity === 'средняя');
+      const lowRisk = matchedContraindications.filter(c => c.severity === 'низкая');
+  
+      if (highRisk.length > 0) {
+        // Пропускаем препараты с высоким риском
+        continue;
+      }
+  
+      results.push({
+        ...rec,
+        isSafe: matchedContraindications.length === 0,
+        contraindications: matchedContraindications,
+        // Понижаем вес при наличии противопоказаний
+        weight: rec.weight * (matchedContraindications.length > 0 ? 0.5 : 1)
+      });
+    }
+  
+    return results.sort((a, b) => {
+      // Сначала безопасные, затем по весу
+      if (a.isSafe !== b.isSafe) return a.isSafe ? -1 : 1;
+      return b.weight - a.weight;
+    });
   }
 
   _combineRecommendations(...allRecs) {
@@ -283,7 +370,8 @@ class MedicalAI {
   _normalizeText(text) {
     return text.toLowerCase()
       .replace(/[^\w\sа-яё]/gi, '')
-      .replace(/\s+/g, ' ');
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   _hashFeature(feature) {
@@ -312,25 +400,29 @@ class PatientSimilarityEngine {
         SELECT 
           p.patientid,
           pf.featurevalue,
+          pf.featuretype,
           pr.medicationid,
           m.name as medicationname
         FROM patients p
         LEFT JOIN patientfeatures pf ON p.patientid = pf.patientid
         LEFT JOIN prescriptions pr ON p.patientid = pr.patientid
         LEFT JOIN medications m ON pr.medicationid = m.medicationid
-        WHERE pf.featuretype IN ('заболевание', 'аллергия')
+        WHERE pf.featuretype IN ('заболевание', 'аллергия', 'непереносимость', 'физиологическая особенность')
         LIMIT 1000
       `);
 
       rows.forEach(row => {
         if (!this.patientData.has(row.patientid)) {
           this.patientData.set(row.patientid, {
-            features: new Set(),
+            features: new Map(), // Теперь используем Map для хранения типа и значения
             medications: new Set()
           });
         }
         if (row.featurevalue) {
-          this.patientData.get(row.patientid).features.add(row.featurevalue);
+          this.patientData.get(row.patientid).features.set(
+            row.featurevalue, 
+            row.featuretype
+          );
         }
         if (row.medicationid) {
           this.patientData.get(row.patientid).medications.add({
@@ -349,18 +441,26 @@ class PatientSimilarityEngine {
   async getSimilarRecs(patientId, k = 3) {
     if (!this.patientData.has(patientId)) return [];
     
-    const current = this.patientData.get(patientId);
-    const currentFeatures = [...current.features];
+    const currentPatient = this.patientData.get(patientId);
+    const currentFeatures = [...currentPatient.features.entries()];
     
     const similarities = [];
     
     this.patientData.forEach((patient, id) => {
       if (id !== patientId && patient.medications.size > 0) {
-        const commonFeatures = [...patient.features].filter(f => 
-          currentFeatures.includes(f)).length;
+        let commonFeatures = 0;
+        
+        // Сравниваем особенности с учетом их типа
+        for (const [value, type] of currentFeatures) {
+          if (patient.features.has(value) && 
+              patient.features.get(value) === type) {
+            commonFeatures++;
+          }
+        }
+        
         const similarity = commonFeatures / Math.max(
           currentFeatures.length, 
-          [...patient.features].length
+          patient.features.size
         );
         
         if (similarity > 0.3) {

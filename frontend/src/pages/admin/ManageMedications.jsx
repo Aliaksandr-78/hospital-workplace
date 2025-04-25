@@ -43,6 +43,7 @@ const ManageMedications = () => {
   });
   const [contraindicationFormData, setContraindicationFormData] = useState({
     Condition: "",
+    ConditionType: "",
     Severity: "средняя",
     Description: "",
     RBReference: ""
@@ -70,6 +71,17 @@ const ManageMedications = () => {
     { value: "низкая", label: "Низкая" },
     { value: "средняя", label: "Средняя" },
     { value: "высокая", label: "Высокая" }
+  ];
+
+  const contraindicationTypes = [
+    { value: "аллергия", label: "Аллергия" },
+    { value: "заболевание", label: "Заболевание" },
+    { value: "патологическое состояние", label: "Патологическое состояние" },
+    { value: "непереносимость", label: "Непереносимость" },
+    { value: "физиологическая особенность", label: "Физиологическая особенность" },
+    { value: "привычка", label: "Привычка" },
+    { value: "психологический фактор", label: "Психологический фактор" },
+    { value: "другое", label: "Другое" }
   ];
 
   const prescriptionOptions = [
@@ -196,12 +208,14 @@ const ManageMedications = () => {
       contraindication
         ? {
             Condition: contraindication.condition || "",
+            ConditionType: contraindication.conditiontype || "",
             Severity: contraindication.severity || "средняя",
             Description: contraindication.description || "",
             RBReference: contraindication.rbreference || ""
           }
         : {
             Condition: "",
+            ConditionType: "",
             Severity: "средняя",
             Description: "",
             RBReference: ""
@@ -650,6 +664,7 @@ const ManageMedications = () => {
                     <thead>
                       <tr>
                         <th className="py-2 px-4 border-b">Состояние</th>
+                        <th className="py-2 px-4 border-b">Тип</th>
                         <th className="py-2 px-4 border-b">Степень риска</th>
                         <th className="py-2 px-4 border-b">Описание</th>
                         <th className="py-2 px-4 border-b">Ссылка</th>
@@ -660,6 +675,7 @@ const ManageMedications = () => {
                       {contraindications.map(contraindication => (
                         <tr key={contraindication.contraindicationid} className="hover:bg-gray-50">
                           <td className="py-2 px-4 border-b">{contraindication.condition}</td>
+                          <td className="py-2 px-4 border-b">{contraindication.conditiontype || "-"}</td>
                           <td className="py-2 px-4 border-b capitalize">{contraindication.severity}</td>
                           <td className="py-2 px-4 border-b">{contraindication.description || "-"}</td>
                           <td className="py-2 px-4 border-b">{contraindication.rbreference || "-"}</td>
@@ -712,6 +728,16 @@ const ManageMedications = () => {
                 value={contraindicationFormData.Condition}
                 onChange={handleContraindicationInputChange}
                 placeholder="Например: Беременность"
+                required
+              />
+
+              <Select
+                label="Тип противопоказания*"
+                name="ConditionType"
+                value={contraindicationFormData.ConditionType}
+                onChange={(value) => setContraindicationFormData(prev => ({ ...prev, ConditionType: value }))}
+                options={contraindicationTypes}
+                placeholder="Выберите тип"
                 required
               />
 

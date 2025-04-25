@@ -3,18 +3,19 @@ const { pool } = require('../config/db');
 const medicationContraindicationsController = {
     async create(req, res) {
         try {
-            const { MedicationID, Condition, Severity, Description, RBReference } = req.body;
+            const { MedicationID, Condition, ConditionType, Severity, Description, RBReference } = req.body;
             
             const query = `
                 INSERT INTO MedicationContraindications 
-                (MedicationID, Condition, Severity, Description, RBReference) 
-                VALUES ($1, $2, $3, $4, $5) 
+                (MedicationID, Condition, ConditionType, Severity, Description, RBReference) 
+                VALUES ($1, $2, $3, $4, $5, $6) 
                 RETURNING *;
             `;
             
             const values = [
                 MedicationID, 
                 Condition, 
+                ConditionType,
                 Severity, 
                 Description, 
                 RBReference
@@ -75,7 +76,9 @@ const medicationContraindicationsController = {
                         WHEN 'средняя' THEN 2
                         WHEN 'низкая' THEN 3
                         ELSE 4
-                    END;
+                    END,
+                    ConditionType,
+                    Condition;
             `;
             
             const result = await pool.query(query, [medicationID]);
@@ -92,23 +95,25 @@ const medicationContraindicationsController = {
     async update(req, res) {
         try {
             const { contraindicationID } = req.params;
-            const { MedicationID, Condition, Severity, Description, RBReference } = req.body;
+            const { MedicationID, Condition, ConditionType, Severity, Description, RBReference } = req.body;
             
             const query = `
                 UPDATE MedicationContraindications 
                 SET 
                     MedicationID = $1,
                     Condition = $2,
-                    Severity = $3,
-                    Description = $4,
-                    RBReference = $5
-                WHERE ContraindicationID = $6
+                    ConditionType = $3,
+                    Severity = $4,
+                    Description = $5,
+                    RBReference = $6
+                WHERE ContraindicationID = $7
                 RETURNING *;
             `;
             
             const values = [
                 MedicationID, 
                 Condition, 
+                ConditionType,
                 Severity, 
                 Description, 
                 RBReference, 

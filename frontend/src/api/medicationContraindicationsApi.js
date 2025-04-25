@@ -5,6 +5,7 @@ import api from "./axiosInstance";
  * @param {Object} data - Данные противопоказания
  * @param {number} data.MedicationID - ID лекарства
  * @param {string} data.Condition - Противопоказание/состояние
+ * @param {string} data.ConditionType - Тип противопоказания
  * @param {string} data.Severity - Степень риска (низкая, средняя, высокая)
  * @param {string} data.Description - Подробное описание
  * @param {string} data.RBReference - Ссылка на инструкцию в РБ
