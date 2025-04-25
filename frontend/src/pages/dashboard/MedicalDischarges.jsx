@@ -3,6 +3,8 @@ import { useAuth } from "../../context/AuthContext"
 import { createMedicalDischarge, getAllMedicalDischarges, getMedicalDischargeById, updateMedicalDischarge, deleteMedicalDischarge } from "../../api/medicalDischargeApi"
 import { getAllPatients } from "../../api/patientApi"
 import { getAllUsers } from "../../api/userApi"
+import { getAllRoles } from "../../api/roleApi"
+import { getUserRolesByUserId } from "../../api/userRoleApi"
 import Button from "../../components/Button"
 import Loader from "../../components/Loader"
 import Header from "../../components/Header"
@@ -31,12 +33,36 @@ const MedicalDischarges = () => {
   const [doctorSearch, setDoctorSearch] = useState("")
   const [filteredPatients, setFilteredPatients] = useState([])
   const [filteredDoctors, setFilteredDoctors] = useState([])
+  const [userRoles, setUserRoles] = useState([])
+  const [allRoles, setAllRoles] = useState([])
+
+  // Проверка ролей
+  const isDoctor = () => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid)
+      return role && role.rolename === "Doctor"
+    })
+  }
 
   useEffect(() => {
     if (user) {
       fetchData()
+      fetchUserRoles()
     }
   }, [user])
+
+  const fetchUserRoles = async () => {
+    try {
+      const [rolesData, userRolesData] = await Promise.all([
+        getAllRoles(),
+        user?.userid ? getUserRolesByUserId(user.userid) : Promise.resolve([]),
+      ])
+      setAllRoles(rolesData)
+      setUserRoles(userRolesData)
+    } catch (error) {
+      console.error("Ошибка при загрузке ролей:", error)
+    }
+  }
 
   useEffect(() => {
     filterAndSortDischarges()
@@ -183,6 +209,16 @@ const MedicalDischarges = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      // Проверка что дата не раньше сегодняшнего дня
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const dischargeDate = new Date(formData.DischargeDate)
+      
+      if (dischargeDate < today) {
+        alert('Дата выписки не может быть раньше сегодняшнего дня')
+        return
+      }
+
       if (!formData.PatientID || !formData.DoctorID || !formData.DischargeDate) {
         alert('Пожалуйста, заполните все обязательные поля')
         return
@@ -194,6 +230,11 @@ const MedicalDischarges = () => {
       }
       
       if (currentDischarge) {
+        // Проверка что врач редактирует свою выписку
+        if (currentDischarge.doctorid !== user?.UserID) {
+          alert('Вы можете редактировать только свои выписки')
+          return
+        }
         await updateMedicalDischarge(currentDischarge.dischargeid, dataToSend)
       } else {
         await createMedicalDischarge(dataToSend)
@@ -236,6 +277,13 @@ const MedicalDischarges = () => {
 
   const handleDelete = async (dischargeID) => {
     try {
+      // Проверка что врач удаляет свою выписку
+      const discharge = medicalDischarges.find(d => d.dischargeid === dischargeID)
+      if (discharge?.doctorid !== user?.UserID) {
+        alert('Вы можете удалять только свои выписки')
+        return
+      }
+      
       await deleteMedicalDischarge(dischargeID)
       fetchData()
     } catch (error) {
@@ -311,9 +359,11 @@ const MedicalDischarges = () => {
                   </Button>
                 )}
               </div>
-              <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700">
-                Создать новую выписку
-              </Button>
+              {isDoctor() && (
+                <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+                  Создать новую выписку
+                </Button>
+              )}
             </div>
 
             <div className="overflow-x-auto">
@@ -339,7 +389,7 @@ const MedicalDischarges = () => {
                       Дата выписки {getSortIndicator('dischargedate')}
                     </th>
                     <th className="py-2 px-4 border-b">Заключение</th>
-                    <th className="py-2 px-4 border-b">Действия</th>
+                    {isDoctor() && (<th className="py-2 px-4 border-b">Действия</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -358,27 +408,29 @@ const MedicalDischarges = () => {
                         </td>
                         <td className="py-2 px-4 border-b">{new Date(discharge.dischargedate).toLocaleDateString()}</td>
                         <td className="py-2 px-4 border-b">{discharge.summary}</td>
-                        <td className="py-2 px-4 border-b whitespace-nowrap">
-                          <div className="flex space-x-2">
-                            <Button 
-                              onClick={() => handleEdit(discharge.dischargeid)} 
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              Редактировать
-                            </Button>
-                            <Button 
-                              onClick={() => handleDelete(discharge.dischargeid)} 
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Удалить
-                            </Button>
-                          </div>
-                        </td>
+                        {isDoctor() && (
+                          <td className="py-2 px-4 border-b whitespace-nowrap">
+                            <div className="flex space-x-2">
+                              <Button 
+                                onClick={() => handleEdit(discharge.dischargeid)} 
+                                className="bg-blue-600 hover:bg-blue-700"
+                              >
+                                Редактировать
+                              </Button>
+                              <Button 
+                                onClick={() => handleDelete(discharge.dischargeid)} 
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Удалить
+                              </Button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" className="py-4 text-center text-gray-500">
+                      <td colSpan={isDoctor() ? 5 : 4} className="py-4 text-center text-gray-500">
                         {medicalDischarges.length === 0 ? "Нет данных о выписках" : "Ничего не найдено"}
                       </td>
                     </tr>
@@ -389,99 +441,101 @@ const MedicalDischarges = () => {
           </div>
         )}
 
-        <Modal isOpen={isModalOpen} onClose={handleCancel}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {currentDischarge ? "Редактировать выписку" : "Создать новую выписку"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Пациент</label>
-                <Input
-                  type="text"
-                  placeholder="Поиск пациента..."
-                  value={patientSearch}
-                  onChange={handlePatientSearchChange}
-                  className="w-full"
-                />
-                {formData.PatientID && (
-                  <div className="p-2 bg-gray-100 rounded">
-                    Выбран: {getSelectedPatientName()}
-                  </div>
-                )}
-                <div className="max-h-60 overflow-y-auto border rounded">
-                  {filteredPatients.map(patient => (
-                    <div 
-                      key={patient.patientid}
-                      className={`p-2 hover:bg-blue-50 cursor-pointer ${formData.PatientID === patient.patientid ? 'bg-blue-100' : ''}`}
-                      onClick={() => handleSelectPatient(patient.patientid)}
-                    >
-                      {patient.lastname} {patient.firstname} {patient.middlename}
+        {isDoctor() && (
+          <Modal isOpen={isModalOpen} onClose={handleCancel}>
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                {currentDischarge ? "Редактировать выписку" : "Создать новую выписку"}
+              </h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Пациент</label>
+                  <Input
+                    type="text"
+                    placeholder="Поиск пациента..."
+                    value={patientSearch}
+                    onChange={handlePatientSearchChange}
+                    className="w-full"
+                  />
+                  {formData.PatientID && (
+                    <div className="p-2 bg-gray-100 rounded">
+                      Выбран: {getSelectedPatientName()}
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Врач</label>
-                <Input
-                  type="text"
-                  placeholder="Поиск врача..."
-                  value={doctorSearch}
-                  onChange={handleDoctorSearchChange}
-                  className="w-full"
-                />
-                {formData.DoctorID && (
-                  <div className="p-2 bg-gray-100 rounded">
-                    Выбран: {getSelectedDoctorName()}
+                  )}
+                  <div className="max-h-60 overflow-y-auto border rounded">
+                    {filteredPatients.map(patient => (
+                      <div 
+                        key={patient.patientid}
+                        className={`p-2 hover:bg-blue-50 cursor-pointer ${formData.PatientID === patient.patientid ? 'bg-blue-100' : ''}`}
+                        onClick={() => handleSelectPatient(patient.patientid)}
+                      >
+                        {patient.lastname} {patient.firstname} {patient.middlename}
+                      </div>
+                    ))}
                   </div>
-                )}
-                <div className="max-h-60 overflow-y-auto border rounded">
-                  {filteredDoctors.map(doctor => (
-                    <div 
-                      key={doctor.userid}
-                      className={`p-2 hover:bg-blue-50 cursor-pointer ${formData.DoctorID === doctor.userid ? 'bg-blue-100' : ''}`}
-                      onClick={() => handleSelectDoctor(doctor.userid)}
-                    >
-                      {doctor.lastname} {doctor.firstname} {doctor.middlename}
-                    </div>
-                  ))}
                 </div>
-              </div>
 
-              <Input
-                label="Дата выписки"
-                name="DischargeDate"
-                value={formData.DischargeDate}
-                onChange={handleInputChange}
-                type="date"
-                required
-              />
-              <Input
-                label="Заключение"
-                name="Summary"
-                value={formData.Summary}
-                onChange={handleInputChange}
-                type="textarea"
-              />
-              <div className="flex justify-end space-x-4">
-                <Button 
-                  type="button" 
-                  onClick={handleCancel} 
-                  className="bg-gray-600 hover:bg-gray-700"
-                >
-                  Отмена
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {currentDischarge ? "Сохранить" : "Создать"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Modal>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Врач</label>
+                  <Input
+                    type="text"
+                    placeholder="Поиск врача..."
+                    value={doctorSearch}
+                    onChange={handleDoctorSearchChange}
+                    className="w-full"
+                  />
+                  {formData.DoctorID && (
+                    <div className="p-2 bg-gray-100 rounded">
+                      Выбран: {getSelectedDoctorName()}
+                    </div>
+                  )}
+                  <div className="max-h-60 overflow-y-auto border rounded">
+                    {filteredDoctors.map(doctor => (
+                      <div 
+                        key={doctor.userid}
+                        className={`p-2 hover:bg-blue-50 cursor-pointer ${formData.DoctorID === doctor.userid ? 'bg-blue-100' : ''}`}
+                        onClick={() => handleSelectDoctor(doctor.userid)}
+                      >
+                        {doctor.lastname} {doctor.firstname} {doctor.middlename}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Input
+                  label="Дата выписки"
+                  name="DischargeDate"
+                  value={formData.DischargeDate}
+                  onChange={handleInputChange}
+                  type="date"
+                  required
+                />
+                <Input
+                  label="Заключение"
+                  name="Summary"
+                  value={formData.Summary}
+                  onChange={handleInputChange}
+                  type="textarea"
+                />
+                <div className="flex justify-end space-x-4">
+                  <Button 
+                    type="button" 
+                    onClick={handleCancel} 
+                    className="bg-gray-600 hover:bg-gray-700"
+                  >
+                    Отмена
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {currentDischarge ? "Сохранить" : "Создать"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </Modal>
+        )}
       </div>
     </div>
   )

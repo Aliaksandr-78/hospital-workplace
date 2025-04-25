@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import { createMedicalRecord, getAllMedicalRecords, deleteMedicalRecord } from "../../api/medicalRecordApi"
 import { getAllPatients } from "../../api/patientApi"
+import { getAllRoles } from "../../api/roleApi"
+import { getUserRolesByUserId } from "../../api/userRoleApi"
 import Button from "../../components/Button"
 import Header from "../../components/Header"
 import Loader from "../../components/Loader"
@@ -20,12 +22,46 @@ const MedicalRecords = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [patientSearch, setPatientSearch] = useState("")
+  const [userRoles, setUserRoles] = useState([])
+  const [allRoles, setAllRoles] = useState([])
+  const [setRolesLoading] = useState(true)
 
   useEffect(() => {
     if (user) {
       fetchData()
+      fetchUserRoles()
     }
   }, [user])
+
+  const fetchUserRoles = async () => {
+    try {
+      const rolesData = await getAllRoles()
+      setAllRoles(rolesData)
+      
+      if (user?.userid) {
+        const userRolesData = await getUserRolesByUserId(user.userid)
+        setUserRoles(userRolesData)
+      }
+    } catch (error) {
+      console.error("Ошибка при загрузке ролей:", error)
+    } finally {
+      setRolesLoading(false)
+    }
+  }
+
+  const isAdmin = () => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid)
+      return role && role.rolename === "Admin"
+    })
+  }
+
+  const isNurse = () => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid)
+      return role && role.rolename === "Nurse"
+    })
+  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -65,6 +101,16 @@ const MedicalRecords = () => {
         return
       }
       
+      // Проверка на существование медицинской карты
+      const existingRecord = medicalRecords.find(record => 
+        record.patientid === selectedPatient.patientid
+      )
+      
+      if (existingRecord) {
+        setError(`У пациента уже есть медицинская карта (ID: ${existingRecord.recordid})`)
+        return
+      }
+      
       await createMedicalRecord({ PatientID: selectedPatient.patientid })
       setIsModalOpen(false)
       fetchData()
@@ -94,13 +140,11 @@ const MedicalRecords = () => {
     setError("")
   }
 
-  // Фильтрация пациентов для поиска
   const filteredPatients = patients.filter(patient => {
     const fullName = `${patient.lastname} ${patient.firstname} ${patient.middlename}`.toLowerCase()
     return fullName.includes(patientSearch.toLowerCase())
   })
 
-  // Фильтрация медицинских карт для основного поиска
   const filteredRecords = medicalRecords.filter(record => {
     const patient = patients.find(p => p.patientid === record.patientid)
     if (!patient) return false
@@ -129,12 +173,14 @@ const MedicalRecords = () => {
               className="w-full"
             />
           </div>
-          <Button 
-            onClick={() => setIsModalOpen(true)} 
-            className="bg-green-600 hover:bg-green-700"
-          >
-            Создать новую медицинскую карту
-          </Button>
+          {(isAdmin() || isNurse()) && (
+            <Button 
+              onClick={() => setIsModalOpen(true)} 
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Создать новую медицинскую карту
+            </Button>
+          )}
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-md">
@@ -166,12 +212,14 @@ const MedicalRecords = () => {
                         >
                           Перейти
                         </Button>
-                        <Button
-                          onClick={() => handleDelete(record.recordid)}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          Удалить
-                        </Button>
+                        {isAdmin() && (
+                          <Button
+                            onClick={() => handleDelete(record.recordid)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Удалить
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -187,58 +235,60 @@ const MedicalRecords = () => {
           </table>
         </div>
 
-        <Modal isOpen={isModalOpen} onClose={handleCancel}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Создать новую медицинскую карту</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Поиск пациента*</label>
-                <Input
-                  type="text"
-                  placeholder="Введите ФИО пациента..."
-                  value={patientSearch}
-                  onChange={handlePatientSearchChange}
-                  className="w-full"
-                />
-                {selectedPatient && (
-                  <div className="p-2 bg-gray-100 rounded">
-                    Выбран: {selectedPatient.lastname} {selectedPatient.firstname} {selectedPatient.middlename}
-                  </div>
-                )}
-                <div className="max-h-60 overflow-y-auto border rounded">
-                  {filteredPatients.map(patient => (
-                    <div 
-                      key={patient.patientid}
-                      className={`p-2 hover:bg-blue-50 cursor-pointer ${selectedPatient?.patientid === patient.patientid ? 'bg-blue-100' : ''}`}
-                      onClick={() => handleSelectPatient(patient)}
-                    >
-                      {patient.lastname} {patient.firstname} {patient.middlename}
+        {(isAdmin() || isNurse()) && (
+          <Modal isOpen={isModalOpen} onClose={handleCancel}>
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Создать новую медицинскую карту</h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Поиск пациента*</label>
+                  <Input
+                    type="text"
+                    placeholder="Введите ФИО пациента..."
+                    value={patientSearch}
+                    onChange={handlePatientSearchChange}
+                    className="w-full"
+                  />
+                  {selectedPatient && (
+                    <div className="p-2 bg-gray-100 rounded">
+                      Выбран: {selectedPatient.lastname} {selectedPatient.firstname} {selectedPatient.middlename}
                     </div>
-                  ))}
+                  )}
+                  <div className="max-h-60 overflow-y-auto border rounded">
+                    {filteredPatients.map(patient => (
+                      <div 
+                        key={patient.patientid}
+                        className={`p-2 hover:bg-blue-50 cursor-pointer ${selectedPatient?.patientid === patient.patientid ? 'bg-blue-100' : ''}`}
+                        onClick={() => handleSelectPatient(patient)}
+                      >
+                        {patient.lastname} {patient.firstname} {patient.middlename}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              
-              {error && <p className="text-red-500">{error}</p>}
-              
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  onClick={handleCancel}
-                  className="bg-gray-600 hover:bg-gray-700"
-                >
-                  Отмена
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="bg-green-600 hover:bg-green-700"
-                  disabled={!selectedPatient}
-                >
-                  Создать
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Modal>
+                
+                {error && <p className="text-red-500">{error}</p>}
+                
+                <div className="flex justify-end space-x-4">
+                  <Button
+                    type="button"
+                    onClick={handleCancel}
+                    className="bg-gray-600 hover:bg-gray-700"
+                  >
+                    Отмена
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="bg-green-600 hover:bg-green-700"
+                    disabled={!selectedPatient}
+                  >
+                    Создать
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </Modal>
+        )}
       </div>
     </div>
   )

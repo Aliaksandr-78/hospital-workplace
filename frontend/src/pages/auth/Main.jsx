@@ -51,8 +51,8 @@ const Main = () => {
 
   // Получение названия специальности по ID
   const getSpecialtyName = (specialtyID) => {
-    const specialty = specialties.find((spec) => spec.SpecialtyID === specialtyID)
-    return specialty ? specialty.SpecialtyName : "Не указано"
+    const specialty = specialties.find((spec) => spec.specialtyid === specialtyID)
+    return specialty ? specialty.specialtyname : "Не указано"
   }
 
   // Получение названий ролей пользователя

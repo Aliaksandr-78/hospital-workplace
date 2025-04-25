@@ -6,6 +6,8 @@ import {
   updatePatient,
   deletePatient,
 } from "../../api/patientApi";
+import { getAllRoles } from "../../api/roleApi";
+import { getUserRolesByUserId } from "../../api/userRoleApi";
 import Button from "../../components/Button";
 import Loader from "../../components/Loader";
 import Input from "../../components/Input";
@@ -31,13 +33,52 @@ const Patients = () => {
     email: "",
     address: "",
   });
+  const [userRoles, setUserRoles] = useState([]);
+  const [allRoles, setAllRoles] = useState([]);
+
+  // Проверка ролей
+  const isAdmin = () => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid);
+      return role && role.rolename === "Admin";
+    });
+  };
+
+  const isNurse = () => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid);
+      return role && role.rolename === "Nurse";
+    });
+  };
+
+  const isDoctor = () => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid);
+      return role && role.rolename === "Doctor";
+    });
+  };
 
   // Загрузка данных при монтировании компонента
   useEffect(() => {
     if (user) {
       fetchData();
+      fetchUserRoles();
     }
   }, [user]);
+
+  // Загрузка ролей пользователя
+  const fetchUserRoles = async () => {
+    try {
+      const [rolesData, userRolesData] = await Promise.all([
+        getAllRoles(),
+        user?.userid ? getUserRolesByUserId(user.userid) : Promise.resolve([]),
+      ]);
+      setAllRoles(rolesData);
+      setUserRoles(userRolesData);
+    } catch (error) {
+      console.error("Ошибка при загрузке ролей:", error);
+    }
+  };
 
   // Эффект для фильтрации пациентов при изменении searchTerm
   useEffect(() => {
@@ -193,12 +234,14 @@ const Patients = () => {
             onChange={handleSearchChange}
             className="flex-grow max-w-md"
           />
-          <Button
-            onClick={() => openModal()}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            Создать нового пациента
-          </Button>
+          {(isAdmin() || isNurse()) && (
+            <Button
+              onClick={() => openModal()}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Создать нового пациента
+            </Button>
+          )}
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
           <table className="min-w-full bg-white">
@@ -212,7 +255,7 @@ const Patients = () => {
                 <th className="py-2 px-4 border-b">Телефон</th>
                 <th className="py-2 px-4 border-b">Email</th>
                 <th className="py-2 px-4 border-b">Адрес</th>
-                <th className="py-2 px-4 border-b">Действия</th>
+                {!isDoctor() &&<th className="py-2 px-4 border-b">Действия</th>}
               </tr>
             </thead>
             <tbody>
@@ -229,22 +272,26 @@ const Patients = () => {
                       <td className="py-2 px-4 border-b">{patient.phonenumber}</td>
                       <td className="py-2 px-4 border-b">{patient.email}</td>
                       <td className="py-2 px-4 border-b">{patient.address}</td>
-                      <td className="py-2 px-4 border-b">
-                        <div className="flex space-x-2">
-                          <Button
-                            onClick={() => openModal(patient)}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            Редактировать
-                          </Button>
-                          <Button
-                            onClick={() => handleDelete(patient.patientid)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Удалить
-                          </Button>
-                        </div>
-                      </td>
+                      {!isDoctor() && (
+                        <td className="py-2 px-4 border-b">
+                          <div className="flex space-x-2">
+                            <Button
+                              onClick={() => openModal(patient)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              Редактировать
+                            </Button>
+                            {isAdmin() && (
+                              <Button
+                                onClick={() => handleDelete(patient.patientid)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Удалить
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })
@@ -260,91 +307,93 @@ const Patients = () => {
             </tbody>
           </table>
         </div>
-        <Modal isOpen={isModalOpen} onClose={closeModal}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {currentPatient ? "Редактировать пациента" : "Создать нового пациента"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                label="Фамилия"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleInputChange}
-                placeholder="Введите фамилию"
-                required
-              />
-              <Input
-                label="Имя"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleInputChange}
-                placeholder="Введите имя"
-                required
-              />
-              <Input
-                label="Отчество"
-                name="middleName"
-                value={formData.middleName}
-                onChange={handleInputChange}
-                placeholder="Введите отчество"
-              />
-              <Input
-                label="Дата рождения"
-                name="dateOfBirth"
-                type="date"
-                value={formData.dateOfBirth}
-                onChange={handleInputChange}
-                placeholder="Введите дату рождения"
-              />
-              <Input
-                label="Пол"
-                name="gender"
-                value={formData.gender}
-                onChange={handleInputChange}
-                type="select"
-              >
-                <option value="">Выберите пол</option>
-                <option value="Мужской">Мужской</option>
-                <option value="Женский">Женский</option>
-              </Input>
-              <Input
-                label="Телефон"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleInputChange}
-                placeholder="Введите номер телефона"
-              />
-              <Input
-                label="Email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="Введите email"
-              />
-              <Input
-                label="Адрес"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                placeholder="Введите адрес"
-              />
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  onClick={closeModal}
-                  className="bg-gray-600 hover:bg-gray-700"
+        {(isAdmin() || isNurse()) && (
+          <Modal isOpen={isModalOpen} onClose={closeModal}>
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                {currentPatient ? "Редактировать пациента" : "Создать нового пациента"}
+              </h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <Input
+                  label="Фамилия"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  placeholder="Введите фамилию"
+                  required
+                />
+                <Input
+                  label="Имя"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  placeholder="Введите имя"
+                  required
+                />
+                <Input
+                  label="Отчество"
+                  name="middleName"
+                  value={formData.middleName}
+                  onChange={handleInputChange}
+                  placeholder="Введите отчество"
+                />
+                <Input
+                  label="Дата рождения"
+                  name="dateOfBirth"
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={handleInputChange}
+                  placeholder="Введите дату рождения"
+                />
+                <Input
+                  label="Пол"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleInputChange}
+                  type="select"
                 >
-                  Отмена
-                </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                  {currentPatient ? "Сохранить" : "Создать"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Modal>
+                  <option value="">Выберите пол</option>
+                  <option value="Мужской">Мужской</option>
+                  <option value="Женский">Женский</option>
+                </Input>
+                <Input
+                  label="Телефон"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleInputChange}
+                  placeholder="Введите номер телефона"
+                />
+                <Input
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="Введите email"
+                />
+                <Input
+                  label="Адрес"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  placeholder="Введите адрес"
+                />
+                <div className="flex justify-end space-x-4">
+                  <Button
+                    type="button"
+                    onClick={closeModal}
+                    className="bg-gray-600 hover:bg-gray-700"
+                  >
+                    Отмена
+                  </Button>
+                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                    {currentPatient ? "Сохранить" : "Создать"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </Modal>
+        )}
       </div>
     </div>
   );

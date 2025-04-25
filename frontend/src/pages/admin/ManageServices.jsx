@@ -18,12 +18,17 @@ import Loader from "../../components/Loader";
 import Input from "../../components/Input";
 import Modal from "../../components/Modal";
 import Header from "../../components/Header";
+import { getAllRoles } from "../../api/roleApi";
+import { getUserRolesByUserId } from "../../api/userRoleApi";
 
 const ManageServices = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("services");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [userRoles, setUserRoles] = useState([]);
+  const [allRoles, setAllRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
   
   const [services, setServices] = useState([]);
   const [filteredServices, setFilteredServices] = useState([]);
@@ -46,11 +51,42 @@ const ManageServices = () => {
     direction: 'asc'
   });
 
+  // Загрузка ролей пользователя
   useEffect(() => {
-    if (user) {
+    const fetchUserRoles = async () => {
+      if (user?.userid) {
+        try {
+          const rolesData = await getAllRoles();
+          setAllRoles(rolesData);
+          
+          const userRolesData = await getUserRolesByUserId(user.userid);
+          setUserRoles(userRolesData);
+        } catch (error) {
+          console.error("Ошибка при загрузке ролей:", error);
+        } finally {
+          setRolesLoading(false);
+        }
+      }
+    };
+
+    fetchUserRoles();
+  }, [user?.userid]);
+
+  // Проверка, является ли пользователь администратором
+  const isAdmin = () => {
+    if (rolesLoading) return false;
+    
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid);
+      return role && role.rolename === "Admin";
+    });
+  };
+
+  useEffect(() => {
+    if (user && !rolesLoading) {
       fetchData();
     }
-  }, [user, activeTab]);
+  }, [user, activeTab, rolesLoading]);
 
   useEffect(() => {
     if (activeTab === "services") {
@@ -288,12 +324,14 @@ const ManageServices = () => {
             onChange={handleSearchChange}
             className="w-64"
           />
-          <Button
-            onClick={() => openModal()}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {activeTab === "services" ? "Добавить услугу" : "Добавить тест"}
-          </Button>
+          {isAdmin() && (
+            <Button
+              onClick={() => openModal()}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {activeTab === "services" ? "Добавить услугу" : "Добавить тест"}
+            </Button>
+          )}
         </div>
         
         {/* Таблица с данными */}
@@ -320,7 +358,7 @@ const ManageServices = () => {
                   >
                     Стоимость <SortIndicator field="cost" />
                   </th>
-                  <th className="py-2 px-4 border-b">Действия</th>
+                  {isAdmin() && <th className="py-2 px-4 border-b">Действия</th>}
                 </tr>
               </thead>
               <tbody>
@@ -330,27 +368,29 @@ const ManageServices = () => {
                       <td className="py-2 px-4 border-b">{service.name}</td>
                       <td className="py-2 px-4 border-b">{service.description}</td>
                       <td className="py-2 px-4 border-b">{service.cost}</td>
-                      <td className="py-2 px-4 border-b">
-                        <div className="flex space-x-2">
-                          <Button
-                            onClick={() => openModal(service)}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            Редактировать
-                          </Button>
-                          <Button
-                            onClick={() => handleDelete(service.serviceid)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Удалить
-                          </Button>
-                        </div>
-                      </td>
+                      {isAdmin() && (
+                        <td className="py-2 px-4 border-b">
+                          <div className="flex space-x-2">
+                            <Button
+                              onClick={() => openModal(service)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              Редактировать
+                            </Button>
+                            <Button
+                              onClick={() => handleDelete(service.serviceid)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Удалить
+                            </Button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="text-center py-4">
+                    <td colSpan={isAdmin() ? 4 : 3} className="text-center py-4">
                       {searchTerm ? "Ничего не найдено" : "Нет данных об услугах"}
                     </td>
                   </tr>
@@ -379,7 +419,7 @@ const ManageServices = () => {
                   >
                     Стоимость <SortIndicator field="cost" />
                   </th>
-                  <th className="py-2 px-4 border-b">Действия</th>
+                  {isAdmin() && <th className="py-2 px-4 border-b">Действия</th>}
                 </tr>
               </thead>
               <tbody>
@@ -389,27 +429,29 @@ const ManageServices = () => {
                       <td className="py-2 px-4 border-b">{test.name}</td>
                       <td className="py-2 px-4 border-b">{test.methodology}</td>
                       <td className="py-2 px-4 border-b">{test.cost} руб.</td>
-                      <td className="py-2 px-4 border-b">
-                        <div className="flex space-x-2">
-                          <Button
-                            onClick={() => openModal(test)}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            Редактировать
-                          </Button>
-                          <Button
-                            onClick={() => handleDelete(test.testid)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Удалить
-                          </Button>
-                        </div>
-                      </td>
+                      {isAdmin() && (
+                        <td className="py-2 px-4 border-b">
+                          <div className="flex space-x-2">
+                            <Button
+                              onClick={() => openModal(test)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              Редактировать
+                            </Button>
+                            <Button
+                              onClick={() => handleDelete(test.testid)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Удалить
+                            </Button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="text-center py-4">
+                    <td colSpan={isAdmin() ? 4 : 3} className="text-center py-4">
                       {searchTerm ? "Ничего не найдено" : "Нет данных о лабораторных тестах"}
                     </td>
                   </tr>
@@ -420,70 +462,72 @@ const ManageServices = () => {
         </div>
         
         {/* Модальное окно для добавления/редактирования */}
-        <Modal isOpen={isModalOpen} onClose={closeModal}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {currentItem 
-                ? `Редактировать ${activeTab === "services" ? "услугу" : "лабораторный тест"}` 
-                : `Создать новую ${activeTab === "services" ? "услугу" : "лабораторный тест"}`}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                label="Название"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder={`Введите название ${activeTab === "services" ? "услуги" : "лабораторного теста"}`}
-                required
-              />
-              
-              {activeTab === "services" ? (
+        {isAdmin() && (
+          <Modal isOpen={isModalOpen} onClose={closeModal}>
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                {currentItem 
+                  ? `Редактировать ${activeTab === "services" ? "услугу" : "лабораторный тест"}` 
+                  : `Создать новую ${activeTab === "services" ? "услугу" : "лабораторный тест"}`}
+              </h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
-                  label="Описание"
-                  name="description"
-                  value={formData.description}
+                  label="Название"
+                  name="name"
+                  value={formData.name}
                   onChange={handleInputChange}
-                  placeholder="Введите описание услуги"
-                  type="textarea"
-                />
-              ) : (
-                <Input
-                  label="Методика"
-                  name="methodology"
-                  value={formData.methodology}
-                  onChange={handleInputChange}
-                  placeholder="Введите методику выполнения"
-                  type="textarea"
+                  placeholder={`Введите название ${activeTab === "services" ? "услуги" : "лабораторного теста"}`}
                   required
                 />
-              )}
-              
-              <Input
-                label="Стоимость"
-                name="cost"
-                type="number"
-                value={formData.cost}
-                onChange={handleInputChange}
-                placeholder="Введите стоимость"
-                required
-                min="0"
-              />
-              
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  onClick={closeModal}
-                  className="bg-gray-600 hover:bg-gray-700"
-                >
-                  Отмена
-                </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                  {currentItem ? "Сохранить" : "Создать"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Modal>
+                
+                {activeTab === "services" ? (
+                  <Input
+                    label="Описание"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    placeholder="Введите описание услуги"
+                    type="textarea"
+                  />
+                ) : (
+                  <Input
+                    label="Методика"
+                    name="methodology"
+                    value={formData.methodology}
+                    onChange={handleInputChange}
+                    placeholder="Введите методику выполнения"
+                    type="textarea"
+                    required
+                  />
+                )}
+                
+                <Input
+                  label="Стоимость"
+                  name="cost"
+                  type="number"
+                  value={formData.cost}
+                  onChange={handleInputChange}
+                  placeholder="Введите стоимость"
+                  required
+                  min="0"
+                />
+                
+                <div className="flex justify-end space-x-4">
+                  <Button
+                    type="button"
+                    onClick={closeModal}
+                    className="bg-gray-600 hover:bg-gray-700"
+                  >
+                    Отмена
+                  </Button>
+                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                    {currentItem ? "Сохранить" : "Создать"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </Modal>
+        )}
       </div>
     </div>
   );

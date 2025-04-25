@@ -2,6 +2,8 @@ import { useState, useEffect } from "react"
 import { useAuth } from "../../context/AuthContext"
 import { createMedicalCertificate, getAllMedicalCertificates, getMedicalCertificateById, updateMedicalCertificate, deleteMedicalCertificate } from "../../api/medicalCertificateApi"
 import { getAllPatients } from "../../api/patientApi"
+import { getAllRoles } from "../../api/roleApi"
+import { getUserRolesByUserId } from "../../api/userRoleApi"
 import Button from "../../components/Button"
 import Loader from "../../components/Loader"
 import Header from "../../components/Header"
@@ -29,12 +31,36 @@ const MedicalCertificates = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
   const [patientSearch, setPatientSearch] = useState("")
   const [filteredPatients, setFilteredPatients] = useState([])
+  const [userRoles, setUserRoles] = useState([])
+  const [allRoles, setAllRoles] = useState([])
+
+  // Проверка ролей
+  const isDoctor = () => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid)
+      return role && role.rolename === "Doctor"
+    })
+  }
 
   useEffect(() => {
     if (user) {
       fetchData()
+      fetchUserRoles()
     }
   }, [user])
+
+  const fetchUserRoles = async () => {
+    try {
+      const [rolesData, userRolesData] = await Promise.all([
+        getAllRoles(),
+        user?.userid ? getUserRolesByUserId(user.userid) : Promise.resolve([]),
+      ])
+      setAllRoles(rolesData)
+      setUserRoles(userRolesData)
+    } catch (error) {
+      console.error("Ошибка при загрузке ролей:", error)
+    }
+  }
 
   useEffect(() => {
     filterAndSortCertificates()
@@ -206,6 +232,16 @@ const MedicalCertificates = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      // Проверка что дата не раньше сегодняшнего дня
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const issuedDate = new Date(formData.issuedDate)
+      
+      if (issuedDate < today) {
+        alert('Дата выдачи справки не может быть раньше сегодняшнего дня')
+        return
+      }
+
       if (!formData.patientID || !formData.issuedDate || !formData.certificateType) {
         alert('Пожалуйста, заполните все обязательные поля')
         return
@@ -225,6 +261,11 @@ const MedicalCertificates = () => {
       }
 
       if (currentCertificate) {
+        // Проверка что врач редактирует свою справку
+        if (currentCertificate.issuedby !== user.userid) {
+          alert('Вы можете редактировать только свои справки')
+          return
+        }
         await updateMedicalCertificate(currentCertificate.certificateid, certificateData)
       } else {
         await createMedicalCertificate(certificateData)
@@ -262,6 +303,13 @@ const MedicalCertificates = () => {
 
   const handleDelete = async (certificateID) => {
     try {
+      // Проверка что врач удаляет свою справку
+      const certificate = medicalCertificates.find(c => c.certificateid === certificateID)
+      if (certificate?.issuedby !== user?.userid) {
+        alert('Вы можете удалять только свои справки')
+        return
+      }
+      
       await deleteMedicalCertificate(certificateID)
       fetchData()
     } catch (error) {
@@ -338,9 +386,11 @@ const MedicalCertificates = () => {
                   </Button>
                 )}
               </div>
-              <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700">
-                Создать новую справку
-              </Button>
+              {isDoctor() && (
+                <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+                  Создать новую справку
+                </Button>
+              )}
             </div>
 
             <div className="overflow-x-auto">
@@ -367,7 +417,7 @@ const MedicalCertificates = () => {
                       Тип справки {getSortIndicator('type')}
                     </th>
                     <th className="py-2 px-4 border-b">Детали</th>
-                    <th className="py-2 px-4 border-b">Действия</th>
+                    {isDoctor() && <th className="py-2 px-4 border-b">Действия</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -385,27 +435,33 @@ const MedicalCertificates = () => {
                         <td className="py-2 px-4 border-b">{new Date(certificate.issueddate).toLocaleDateString()}</td>
                         <td className="py-2 px-4 border-b">{certificate.certificatetype}</td>
                         <td className="py-2 px-4 border-b">{certificate.details}</td>
-                        <td className="py-2 px-4 border-b whitespace-nowrap">
-                          <div className="flex space-x-2">
-                            <Button 
-                              onClick={() => handleEdit(certificate.certificateid)} 
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              Редактировать
-                            </Button>
-                            <Button 
-                              onClick={() => handleDelete(certificate.certificateid)} 
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Удалить
-                            </Button>
-                          </div>
-                        </td>
+                        {isDoctor() && (
+                          <td className="py-2 px-4 border-b whitespace-nowrap">
+                            {certificate.issuedby === user.userid ? (
+                              <div className="flex space-x-2">
+                                <Button 
+                                  onClick={() => handleEdit(certificate.certificateid)} 
+                                  className="bg-blue-600 hover:bg-blue-700"
+                                >
+                                  Редактировать
+                                </Button>
+                                <Button 
+                                  onClick={() => handleDelete(certificate.certificateid)} 
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Удалить
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-gray-500">Только для автора</span>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="6" className="py-4 text-center text-gray-500">
+                      <td colSpan={isDoctor() ? 6 : 5} className="py-4 text-center text-gray-500">
                         {medicalCertificates.length === 0 ? "Нет данных о справках" : "Ничего не найдено"}
                       </td>
                     </tr>
@@ -416,80 +472,82 @@ const MedicalCertificates = () => {
           </div>
         )}
 
-        <Modal isOpen={isModalOpen} onClose={handleCancel}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {currentCertificate ? "Редактировать справку" : "Создать новую справку"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Пациент *</label>
-                <Input
-                  type="text"
-                  placeholder="Поиск пациента..."
-                  value={patientSearch}
-                  onChange={handlePatientSearchChange}
-                  className="w-full"
-                />
-                {formData.patientID && (
-                  <div className="p-2 bg-gray-100 rounded">
-                    Выбран: {getSelectedPatientName()}
-                  </div>
-                )}
-                <div className="max-h-60 overflow-y-auto border rounded">
-                  {filteredPatients.map(patient => (
-                    <div 
-                      key={patient.patientid}
-                      className={`p-2 hover:bg-blue-50 cursor-pointer ${formData.patientID === patient.patientid.toString() ? 'bg-blue-100' : ''}`}
-                      onClick={() => handleSelectPatient(patient.patientid)}
-                    >
-                      {patient.lastname} {patient.firstname} {patient.middlename}
+        {isDoctor() && (
+          <Modal isOpen={isModalOpen} onClose={handleCancel}>
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                {currentCertificate ? "Редактировать справку" : "Создать новую справку"}
+              </h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Пациент *</label>
+                  <Input
+                    type="text"
+                    placeholder="Поиск пациента..."
+                    value={patientSearch}
+                    onChange={handlePatientSearchChange}
+                    className="w-full"
+                  />
+                  {formData.patientID && (
+                    <div className="p-2 bg-gray-100 rounded">
+                      Выбран: {getSelectedPatientName()}
                     </div>
-                  ))}
+                  )}
+                  <div className="max-h-60 overflow-y-auto border rounded">
+                    {filteredPatients.map(patient => (
+                      <div 
+                        key={patient.patientid}
+                        className={`p-2 hover:bg-blue-50 cursor-pointer ${formData.patientID === patient.patientid.toString() ? 'bg-blue-100' : ''}`}
+                        onClick={() => handleSelectPatient(patient.patientid)}
+                      >
+                        {patient.lastname} {patient.firstname} {patient.middlename}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <Input
-                label="Дата выдачи *"
-                name="issuedDate"
-                value={formData.issuedDate}
-                onChange={handleInputChange}
-                type="date"
-                required
-              />
-              <Input
-                label="Тип справки *"
-                name="certificateType"
-                value={formData.certificateType}
-                onChange={handleInputChange}
-                type="text"
-                required
-              />
-              <Input
-                label="Детали"
-                name="details"
-                value={formData.details}
-                onChange={handleInputChange}
-                type="textarea"
-              />
-              <div className="flex justify-end space-x-4">
-                <Button 
-                  type="button" 
-                  onClick={handleCancel} 
-                  className="bg-gray-600 hover:bg-gray-700"
-                >
-                  Отмена
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {currentCertificate ? "Сохранить" : "Создать"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Modal>
+                <Input
+                  label="Дата выдачи *"
+                  name="issuedDate"
+                  value={formData.issuedDate}
+                  onChange={handleInputChange}
+                  type="date"
+                  required
+                />
+                <Input
+                  label="Тип справки *"
+                  name="certificateType"
+                  value={formData.certificateType}
+                  onChange={handleInputChange}
+                  type="text"
+                  required
+                />
+                <Input
+                  label="Детали"
+                  name="details"
+                  value={formData.details}
+                  onChange={handleInputChange}
+                  type="textarea"
+                />
+                <div className="flex justify-end space-x-4">
+                  <Button 
+                    type="button" 
+                    onClick={handleCancel} 
+                    className="bg-gray-600 hover:bg-gray-700"
+                  >
+                    Отмена
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {currentCertificate ? "Сохранить" : "Создать"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </Modal>
+        )}
       </div>
     </div>
   )

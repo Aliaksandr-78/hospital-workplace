@@ -2,6 +2,8 @@ import { useState, useEffect } from "react"
 import { useAuth } from "../../context/AuthContext"
 import { createConsentForm, getAllConsentForms, deleteConsentForm } from "../../api/consentFormApi"
 import { getAllPatients } from "../../api/patientApi"
+import { getAllRoles } from "../../api/roleApi"
+import { getUserRolesByUserId } from "../../api/userRoleApi"
 import Button from "../../components/Button"
 import Header from "../../components/Header"
 import Loader from "../../components/Loader"
@@ -22,6 +24,8 @@ const ConsentForms = () => {
     date: "",
     details: "",
   })
+  const [userRoles, setUserRoles] = useState([])
+  const [allRoles, setAllRoles] = useState([])
 
   // Состояния для поиска и сортировки
   const [patientSearch, setPatientSearch] = useState("")
@@ -31,11 +35,40 @@ const ConsentForms = () => {
   const [patientSearchModal, setPatientSearchModal] = useState("")
   const [filteredPatients, setFilteredPatients] = useState([])
 
+  // Проверка ролей
+  const isAdmin = () => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid)
+      return role && role.rolename === "Admin"
+    })
+  }
+
+  const isDoctor = () => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid)
+      return role && role.rolename === "Doctor"
+    })
+  }
+
   useEffect(() => {
     if (user) {
       fetchData()
+      fetchUserRoles()
     }
   }, [user])
+
+  const fetchUserRoles = async () => {
+    try {
+      const [rolesData, userRolesData] = await Promise.all([
+        getAllRoles(),
+        user?.userid ? getUserRolesByUserId(user.userid) : Promise.resolve([]),
+      ])
+      setAllRoles(rolesData)
+      setUserRoles(userRolesData)
+    } catch (error) {
+      console.error("Ошибка при загрузке ролей:", error)
+    }
+  }
 
   useEffect(() => {
     filterAndSortConsentForms()
@@ -299,7 +332,7 @@ const ConsentForms = () => {
                     Дата {getSortIndicator('date')}
                   </th>
                   <th className="py-2 px-4 border-b">Детали</th>
-                  <th className="py-2 px-4 border-b">Действия</th>
+                  {(isAdmin() || isDoctor()) && <th className="py-2 px-4 border-b">Действия</th>}
                 </tr>
               </thead>
               <tbody>
@@ -316,20 +349,22 @@ const ConsentForms = () => {
                           {new Date(consentForm.date).toLocaleDateString()}
                         </td>
                         <td className="py-2 px-4 border-b">{consentForm.details}</td>
-                        <td className="py-2 px-4 border-b">
-                          <Button
-                            onClick={() => handleDelete(consentForm.consentformid)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Удалить
-                          </Button>
-                        </td>
+                        {(isAdmin() || isDoctor()) && 
+                          <td className="py-2 px-4 border-b">
+                            <Button
+                              onClick={() => handleDelete(consentForm.consentformid)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Удалить
+                            </Button>
+                          </td>
+                        }
                       </tr>
                     )
                   })
                 ) : (
                   <tr>
-                    <td colSpan="5" className="py-4 text-center text-gray-500">
+                    <td colSpan={(isAdmin() || isDoctor()) ? 5 : 4} className="py-4 text-center text-gray-500">
                       {consentForms.length === 0 ? "Нет данных о согласиях" : "Ничего не найдено"}
                     </td>
                   </tr>

@@ -11,14 +11,18 @@ import {
   updateContraindication,
   deleteContraindication,
 } from "../../api/medicationContraindicationsApi";
+import { getAllRoles } from "../../api/roleApi";
+import { getUserRolesByUserId } from "../../api/userRoleApi";
 import Button from "../../components/Button";
 import Header from "../../components/Header";
 import Loader from "../../components/Loader";
 import Modal from "../../components/Modal";
 import Input from "../../components/Input";
 import Select from "../../components/Select";
+import { useAuth } from "../../context/AuthContext";
 
 const ManageMedications = () => {
+  const { user } = useAuth();
   const [medications, setMedications] = useState([]);
   const [filteredMedications, setFilteredMedications] = useState([]);
   const [contraindications, setContraindications] = useState([]);
@@ -53,6 +57,9 @@ const ManageMedications = () => {
   const [searchPrescription, setSearchPrescription] = useState("all");
   const [sortField, setSortField] = useState("medicationid");
   const [sortDirection, setSortDirection] = useState("asc");
+  const [userRoles, setUserRoles] = useState([]);
+  const [allRoles, setAllRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
 
   const medicationCategories = [
     { value: "Антибиотики", label: "Антибиотики" },
@@ -107,6 +114,28 @@ const ManageMedications = () => {
 
     fetchMedications();
   }, []);
+
+  // Загрузка ролей пользователя
+  useEffect(() => {
+    const fetchUserRoles = async () => {
+      if (user?.userid) {
+        try {
+          const rolesData = await getAllRoles();
+          setAllRoles(rolesData);
+          
+          const userRolesData = await getUserRolesByUserId(user.userid);
+          setUserRoles(userRolesData);
+        } catch (error) {
+          console.error("Ошибка при загрузке ролей:", error);
+        } finally {
+          setRolesLoading(false);
+        }
+      }
+    };
+
+    fetchUserRoles();
+  }, [user?.userid]);
+
 
   // Фильтрация и сортировка
   useEffect(() => {
@@ -164,6 +193,15 @@ const ManageMedications = () => {
     } finally {
       setContraindicationsLoading(false);
     }
+  };
+
+  const isAdmin = () => {
+    if (rolesLoading) return false;
+    
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid);
+      return role && role.rolename === "Admin";
+    });
   };
 
   const openModal = (medication = null) => {
@@ -409,9 +447,11 @@ const ManageMedications = () => {
               className="w-64"
             />
           </div>
-          <Button onClick={() => openModal()} className="bg-green-600 hover:bg-green-700">
-            Добавить лекарство
-          </Button>
+          {isAdmin() && (
+            <Button onClick={() => openModal()} className="bg-green-600 hover:bg-green-700">
+              Добавить лекарство
+            </Button>
+          )}
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
@@ -462,18 +502,22 @@ const ManageMedications = () => {
                       >
                         Подробнее
                       </Button>
-                      <Button
-                        onClick={() => openModal(medication)}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        Редактировать
-                      </Button>
-                      <Button
-                        onClick={() => handleDelete(medication.medicationid)}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Удалить
-                      </Button>
+                      {isAdmin() && (
+                        <>
+                          <Button
+                            onClick={() => openModal(medication)}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            Редактировать
+                          </Button>
+                          <Button
+                            onClick={() => handleDelete(medication.medicationid)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Удалить
+                          </Button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -489,111 +533,113 @@ const ManageMedications = () => {
         </div>
 
         {/* Модальное окно для лекарства */}
-        <Modal isOpen={isModalOpen} onClose={closeModal} size="lg">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {currentMedication ? "Редактировать лекарство" : "Добавить лекарство"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Название*"
-                  name="Name"
-                  value={formData.Name}
-                  onChange={handleInputChange}
-                  placeholder="Согласно РБ фармакопее"
-                  required
-                />
-                <Select
-                  label="Категория препарата*"
-                  name="Category"
-                  value={formData.Category}
-                  onChange={(value) => setFormData(prev => ({ ...prev, Category: value }))}
-                  options={medicationCategories}
-                  placeholder="Выберите категорию"
-                  required
-                />
-                <Input
-                  label="Регистрационный номер в РБ"
-                  name="RBRegistrationNumber"
-                  value={formData.RBRegistrationNumber}
-                  onChange={handleInputChange}
-                  placeholder="Введите регистрационный номер"
-                />
-                <div className="flex items-center mt-6">
-                  <input
-                    type="checkbox"
-                    name="IsPrescriptionOnly"
-                    checked={formData.IsPrescriptionOnly}
+        {isAdmin() && (
+          <Modal isOpen={isModalOpen} onClose={closeModal} size="lg">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                {currentMedication ? "Редактировать лекарство" : "Добавить лекарство"}
+              </h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Название*"
+                    name="Name"
+                    value={formData.Name}
                     onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    placeholder="Согласно РБ фармакопее"
+                    required
                   />
-                  <label htmlFor="IsPrescriptionOnly" className="ml-2 block text-sm text-gray-900">
-                    Рецептурный препарат
-                  </label>
+                  <Select
+                    label="Категория препарата*"
+                    name="Category"
+                    value={formData.Category}
+                    onChange={(value) => setFormData(prev => ({ ...prev, Category: value }))}
+                    options={medicationCategories}
+                    placeholder="Выберите категорию"
+                    required
+                  />
+                  <Input
+                    label="Регистрационный номер в РБ"
+                    name="RBRegistrationNumber"
+                    value={formData.RBRegistrationNumber}
+                    onChange={handleInputChange}
+                    placeholder="Введите регистрационный номер"
+                  />
+                  <div className="flex items-center mt-6">
+                    <input
+                      type="checkbox"
+                      name="IsPrescriptionOnly"
+                      checked={formData.IsPrescriptionOnly}
+                      onChange={handleInputChange}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="IsPrescriptionOnly" className="ml-2 block text-sm text-gray-900">
+                      Рецептурный препарат
+                    </label>
+                  </div>
                 </div>
-              </div>
 
-              <Input
-                label="Описание и фармакологическая группа"
-                name="Description"
-                type="textarea"
-                value={formData.Description}
-                onChange={handleInputChange}
-                placeholder="Введите описание"
-              />
+                <Input
+                  label="Описание и фармакологическая группа"
+                  name="Description"
+                  type="textarea"
+                  value={formData.Description}
+                  onChange={handleInputChange}
+                  placeholder="Введите описание"
+                />
 
-              <Input
-                label="Рекомендации по дозировке"
-                name="DosageRecommendations"
-                type="textarea"
-                value={formData.DosageRecommendations}
-                onChange={handleInputChange}
-                placeholder="Введите рекомендации по дозировке"
-              />
+                <Input
+                  label="Рекомендации по дозировке"
+                  name="DosageRecommendations"
+                  type="textarea"
+                  value={formData.DosageRecommendations}
+                  onChange={handleInputChange}
+                  placeholder="Введите рекомендации по дозировке"
+                />
 
-              <Input
-                label="Противопоказания"
-                name="Contraindications"
-                type="textarea"
-                value={formData.Contraindications}
-                onChange={handleInputChange}
-                placeholder="Введите противопоказания"
-              />
+                <Input
+                  label="Противопоказания"
+                  name="Contraindications"
+                  type="textarea"
+                  value={formData.Contraindications}
+                  onChange={handleInputChange}
+                  placeholder="Введите противопоказания"
+                />
 
-              <Input
-                label="Побочные эффекты"
-                name="SideEffects"
-                type="textarea"
-                value={formData.SideEffects}
-                onChange={handleInputChange}
-                placeholder="Введите возможные побочные эффекты"
-              />
+                <Input
+                  label="Побочные эффекты"
+                  name="SideEffects"
+                  type="textarea"
+                  value={formData.SideEffects}
+                  onChange={handleInputChange}
+                  placeholder="Введите возможные побочные эффекты"
+                />
 
-              <Input
-                label="Взаимодействия с другими препаратами"
-                name="Interactions"
-                type="textarea"
-                value={formData.Interactions}
-                onChange={handleInputChange}
-                placeholder="Введите информацию о взаимодействиях"
-              />
+                <Input
+                  label="Взаимодействия с другими препаратами"
+                  name="Interactions"
+                  type="textarea"
+                  value={formData.Interactions}
+                  onChange={handleInputChange}
+                  placeholder="Введите информацию о взаимодействиях"
+                />
 
-              <div className="flex justify-end space-x-4 pt-4">
-                <Button
-                  type="button"
-                  onClick={closeModal}
-                  className="bg-gray-600 hover:bg-gray-700"
-                >
-                  Отмена
-                </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                  {currentMedication ? "Сохранить" : "Добавить"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Modal>
+                <div className="flex justify-end space-x-4 pt-4">
+                  <Button
+                    type="button"
+                    onClick={closeModal}
+                    className="bg-gray-600 hover:bg-gray-700"
+                  >
+                    Отмена
+                  </Button>
+                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                    {currentMedication ? "Сохранить" : "Добавить"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </Modal>
+        )}
 
         {/* Модальное окно с подробной информацией о лекарстве */}
         <Modal isOpen={isDetailModalOpen} onClose={closeDetailModal} size="xl">
@@ -648,12 +694,14 @@ const ManageMedications = () => {
             <div className="mt-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Противопоказания</h3>
-                <Button 
-                  onClick={() => openContraindicationModal(null)}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  Добавить противопоказание
-                </Button>
+                {isAdmin() && (
+                  <Button 
+                    onClick={() => openContraindicationModal(null)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Добавить противопоказание
+                  </Button>
+                )}
               </div>
 
               {contraindicationsLoading ? (
@@ -668,7 +716,7 @@ const ManageMedications = () => {
                         <th className="py-2 px-4 border-b">Степень риска</th>
                         <th className="py-2 px-4 border-b">Описание</th>
                         <th className="py-2 px-4 border-b">Ссылка</th>
-                        <th className="py-2 px-4 border-b">Действия</th>
+                        {isAdmin() && (<th className="py-2 px-4 border-b">Действия</th>)}
                       </tr>
                     </thead>
                     <tbody>
@@ -679,20 +727,22 @@ const ManageMedications = () => {
                           <td className="py-2 px-4 border-b capitalize">{contraindication.severity}</td>
                           <td className="py-2 px-4 border-b">{contraindication.description || "-"}</td>
                           <td className="py-2 px-4 border-b">{contraindication.rbreference || "-"}</td>
-                          <td className="py-2 px-4 border-b space-x-2">
-                            <Button
-                              onClick={() => openContraindicationModal(contraindication)}
-                              className="bg-blue-600 hover:bg-blue-700 text-sm"
-                            >
-                              Редактировать
-                            </Button>
-                            <Button
-                              onClick={() => handleDeleteContraindication(contraindication.contraindicationid)}
-                              className="bg-red-600 hover:bg-red-700 text-sm"
-                            >
-                              Удалить
-                            </Button>
-                          </td>
+                          {isAdmin() && (
+                            <td className="py-2 px-4 border-b space-x-2">
+                              <Button
+                                onClick={() => openContraindicationModal(contraindication)}
+                                className="bg-blue-600 hover:bg-blue-700 text-sm"
+                              >
+                                Редактировать
+                              </Button>
+                              <Button
+                                onClick={() => handleDeleteContraindication(contraindication.contraindicationid)}
+                                className="bg-red-600 hover:bg-red-700 text-sm"
+                              >
+                                Удалить
+                              </Button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -716,72 +766,74 @@ const ManageMedications = () => {
         </Modal>
 
         {/* Модальное окно для добавления/редактирования противопоказания */}
-        <Modal isOpen={isContraindicationModalOpen} onClose={closeContraindicationModal} size="md">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {currentContraindication ? "Редактировать противопоказание" : "Добавить противопоказание"}
-            </h2>
-            <form onSubmit={handleContraindicationSubmit} className="space-y-4">
-              <Input
-                label="Состояние*"
-                name="Condition"
-                value={contraindicationFormData.Condition}
-                onChange={handleContraindicationInputChange}
-                placeholder="Например: Беременность"
-                required
-              />
+        {isAdmin() && (
+          <Modal isOpen={isContraindicationModalOpen} onClose={closeContraindicationModal} size="md">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                {currentContraindication ? "Редактировать противопоказание" : "Добавить противопоказание"}
+              </h2>
+              <form onSubmit={handleContraindicationSubmit} className="space-y-4">
+                <Input
+                  label="Состояние*"
+                  name="Condition"
+                  value={contraindicationFormData.Condition}
+                  onChange={handleContraindicationInputChange}
+                  placeholder="Например: Беременность"
+                  required
+                />
 
-              <Select
-                label="Тип противопоказания*"
-                name="ConditionType"
-                value={contraindicationFormData.ConditionType}
-                onChange={(value) => setContraindicationFormData(prev => ({ ...prev, ConditionType: value }))}
-                options={contraindicationTypes}
-                placeholder="Выберите тип"
-                required
-              />
+                <Select
+                  label="Тип противопоказания*"
+                  name="ConditionType"
+                  value={contraindicationFormData.ConditionType}
+                  onChange={(value) => setContraindicationFormData(prev => ({ ...prev, ConditionType: value }))}
+                  options={contraindicationTypes}
+                  placeholder="Выберите тип"
+                  required
+                />
 
-              <Select
-                label="Степень риска*"
-                name="Severity"
-                value={contraindicationFormData.Severity}
-                onChange={(value) => setContraindicationFormData(prev => ({ ...prev, Severity: value }))}
-                options={severityOptions}
-                required
-              />
+                <Select
+                  label="Степень риска*"
+                  name="Severity"
+                  value={contraindicationFormData.Severity}
+                  onChange={(value) => setContraindicationFormData(prev => ({ ...prev, Severity: value }))}
+                  options={severityOptions}
+                  required
+                />
 
-              <Input
-                label="Описание"
-                name="Description"
-                type="textarea"
-                value={contraindicationFormData.Description}
-                onChange={handleContraindicationInputChange}
-                placeholder="Подробное описание"
-              />
+                <Input
+                  label="Описание"
+                  name="Description"
+                  type="textarea"
+                  value={contraindicationFormData.Description}
+                  onChange={handleContraindicationInputChange}
+                  placeholder="Подробное описание"
+                />
 
-              <Input
-                label="Ссылка на инструкцию в РБ"
-                name="RBReference"
-                value={contraindicationFormData.RBReference}
-                onChange={handleContraindicationInputChange}
-                placeholder="Номер инструкции или приказа"
-              />
+                <Input
+                  label="Ссылка на инструкцию в РБ"
+                  name="RBReference"
+                  value={contraindicationFormData.RBReference}
+                  onChange={handleContraindicationInputChange}
+                  placeholder="Номер инструкции или приказа"
+                />
 
-              <div className="flex justify-end space-x-4 pt-4">
-                <Button
-                  type="button"
-                  onClick={closeContraindicationModal}
-                  className="bg-gray-600 hover:bg-gray-700"
-                >
-                  Отмена
-                </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                  {currentContraindication ? "Сохранить" : "Добавить"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Modal>
+                <div className="flex justify-end space-x-4 pt-4">
+                  <Button
+                    type="button"
+                    onClick={closeContraindicationModal}
+                    className="bg-gray-600 hover:bg-gray-700"
+                  >
+                    Отмена
+                  </Button>
+                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                    {currentContraindication ? "Сохранить" : "Добавить"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </Modal>
+        )}
       </div>
     </div>
   );
