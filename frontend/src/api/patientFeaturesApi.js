@@ -86,9 +86,16 @@ export const getFeaturesByPatient = async (patientID) => {
  */
 export const updatePatientFeature = async (featureID, data) => {
   try {
+    const requestData = {
+      PatientID: data.patientid,
+      FeatureType: data.featuretype,
+      FeatureValue: data.featurevalue,
+      DateIdentified: data.dateidentified || new Date().toISOString(),
+      IsActive: data.isactive !== false
+    };
     const response = await api.put(
       `patient-features/patientFeaturesUpdate/${featureID}`,
-      data
+      requestData
     );
     return response.data;
   } catch (error) {
