@@ -5,6 +5,8 @@ import { getAllPatients } from "../../api/patientApi";
 import { getAllUsers } from "../../api/userApi";
 import { getAllSchedules } from "../../api/scheduleApi";
 import { getAllSpecialties } from "../../api/specialtyApi";
+import { getAllRoles } from "../../api/roleApi";
+import { getUserRolesByUserId } from "../../api/userRoleApi";
 import Button from "../../components/Button";
 import Loader from "../../components/Loader";
 import Input from "../../components/Input";
@@ -37,6 +39,8 @@ const Appointments = () => {
   });
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
   const [isDoctorAvailable, setIsDoctorAvailable] = useState(false);
+  const [userRoles, setUserRoles] = useState([]);
+  const [allRoles, setAllRoles] = useState([]);
 
   // Состояния для поиска и сортировки
   const [patientSearch, setPatientSearch] = useState("");
@@ -47,6 +51,28 @@ const Appointments = () => {
   const [doctorModalSearch, setDoctorModalSearch] = useState("");
   const [patientSortConfig, setPatientSortConfig] = useState({ key: null, direction: 'asc' });
   const [doctorSortConfig, setDoctorSortConfig] = useState({ key: null, direction: 'asc' });
+
+  // Проверка ролей
+  const isAdmin = () => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid);
+      return role && role.rolename === "Admin";
+    });
+  };
+
+  const isNurse = () => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid);
+      return role && role.rolename === "Nurse";
+    });
+  };
+
+  const isDoctor = () => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid);
+      return role && role.rolename === "Doctor";
+    });
+  };
 
   useEffect(() => {
     if (user) {
@@ -73,13 +99,16 @@ const Appointments = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [appointmentsData, patientsData, doctorsData, schedulesData, specialtiesData] = await Promise.all([
-        getAppointments(),
-        getAllPatients(),
-        getAllUsers(),
-        getAllSchedules(),
-        getAllSpecialties(),
-      ]);
+      const [appointmentsData, patientsData, doctorsData, schedulesData, specialtiesData, rolesData, userRolesData] = 
+        await Promise.all([
+          getAppointments(),
+          getAllPatients(),
+          getAllUsers(),
+          getAllSchedules(),
+          getAllSpecialties(),
+          getAllRoles(),
+          user?.userid ? getUserRolesByUserId(user.userid) : Promise.resolve([]),
+        ]);
 
       const availableDoctors = doctorsData.filter(doctor => {
         const doctorSchedule = schedulesData.find(schedule => schedule.doctorid === doctor.userid && schedule.eventtypeid === 1);
@@ -93,6 +122,8 @@ const Appointments = () => {
       setFilteredDoctors(availableDoctors);
       setSchedules(schedulesData);
       setSpecialties(specialtiesData);
+      setAllRoles(rolesData);
+      setUserRoles(userRolesData);
     } catch (error) {
       console.error("Ошибка при загрузке данных:", error);
     } finally {
@@ -102,6 +133,11 @@ const Appointments = () => {
 
   const filterAndSortAppointments = () => {
     let result = [...appointments];
+    
+    // Для доктора показываем только его приемы
+    if (isDoctor()) {
+      result = result.filter(appointment => appointment.doctorid === user.userid);
+    }
     
     // Фильтрация по пациенту
     if (patientSearch) {
@@ -450,7 +486,9 @@ const Appointments = () => {
       <Header appName="Управление приемами" />
 
       <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">Управление приемами</h1>
+        <h1 className="text-3xl font-bold mb-6 text-center">
+          {isDoctor() ? "Мои приемы" : "Управление приемами"}
+        </h1>
 
         {loading ? (
           <Loader className="flex justify-center my-8" />
@@ -465,12 +503,14 @@ const Appointments = () => {
                   onChange={(e) => setPatientSearch(e.target.value)}
                   className="w-64"
                 />
-                <Input
-                  type="text"
-                  placeholder="Поиск по врачу..."
-                  value={doctorSearch}
-                  onChange={(e) => setDoctorSearch(e.target.value)}
-                />
+                {!isDoctor() && (
+                  <Input
+                    type="text"
+                    placeholder="Поиск по врачу..."
+                    value={doctorSearch}
+                    onChange={(e) => setDoctorSearch(e.target.value)}
+                  />
+                )}
                 <Input
                   type="date"
                   placeholder="Фильтр по дате..."
@@ -486,9 +526,11 @@ const Appointments = () => {
                   </Button>
                 )}
               </div>
-              <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700">
-                Создать новый прием
-              </Button>
+              {isNurse() && (
+                <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+                  Создать новый прием
+                </Button>
+              )}
             </div>
 
             <div className="overflow-x-auto">
@@ -501,12 +543,14 @@ const Appointments = () => {
                     >
                       Пациент {getSortIndicator('patient', sortConfig)}
                     </th>
-                    <th 
-                      className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
-                      onClick={() => requestSort('doctor')}
-                    >
-                      Врач {getSortIndicator('doctor', sortConfig)}
-                    </th>
+                    {!isDoctor() && (
+                      <th 
+                        className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                        onClick={() => requestSort('doctor')}
+                      >
+                        Врач {getSortIndicator('doctor', sortConfig)}
+                      </th>
+                    )}
                     <th 
                       className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
                       onClick={() => requestSort('date')}
@@ -520,7 +564,7 @@ const Appointments = () => {
                       Время {getSortIndicator('time', sortConfig)}
                     </th>
                     <th className="py-2 px-4 border-b">Причина</th>
-                    <th className="py-2 px-4 border-b">Действия</th>
+                    {isNurse() && <th className="py-2 px-4 border-b">Действия</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -534,26 +578,30 @@ const Appointments = () => {
                           <td className="py-2 px-4 border-b">
                             {patient ? `${patient.lastname} ${patient.firstname} ${patient.middlename || ''}` : "Неизвестный пациент"}
                           </td>
-                          <td className="py-2 px-4 border-b">
-                            {doctor ? `${doctor.lastname} ${doctor.firstname} ${doctor.middlename || ''}` : "Неизвестный врач"}
-                          </td>
+                          {!isDoctor() && (
+                            <td className="py-2 px-4 border-b">
+                              {doctor ? `${doctor.lastname} ${doctor.firstname} ${doctor.middlename || ''}` : "Неизвестный врач"}
+                            </td>
+                          )}
                           <td className="py-2 px-4 border-b">{new Date(appointment.date).toLocaleDateString()}</td>
                           <td className="py-2 px-4 border-b">{appointment.time.slice(0, 5)}</td>
                           <td className="py-2 px-4 border-b">{appointment.reason}</td>
-                          <td className="py-2 px-4 border-b">
-                            <Button onClick={() => handleEdit(appointment)} className="mr-2 bg-blue-600 hover:bg-blue-700">
-                              Редактировать
-                            </Button>
-                            <Button onClick={() => handleDelete(appointment.appointmentid)} className="bg-red-600 hover:bg-red-700">
-                              Удалить
-                            </Button>
-                          </td>
+                          {isNurse() && (
+                            <td className="py-2 px-4 border-b">
+                              <Button onClick={() => handleEdit(appointment)} className="mr-2 bg-blue-600 hover:bg-blue-700">
+                                Редактировать
+                              </Button>
+                              <Button onClick={() => handleDelete(appointment.appointmentid)} className="bg-red-600 hover:bg-red-700">
+                                Удалить
+                              </Button>
+                            </td>
+                          )}
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan="6" className="py-4 text-center text-gray-500">
+                      <td colSpan={isDoctor() ? (isNurse() ? 5 : 4) : (isNurse() ? 6 : 5)} className="py-4 text-center text-gray-500">
                         {appointments.length === 0 ? "Нет данных о приемах" : "Ничего не найдено"}
                       </td>
                     </tr>
@@ -564,163 +612,169 @@ const Appointments = () => {
           </div>
         )}
 
-        <Modal isOpen={isModalOpen} onClose={handleCancel}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {currentAppointment ? "Редактировать прием" : "Создать новый прием"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Пациент</label>
-                <Button onClick={() => setIsPatientModalOpen(true)} className="w-full bg-blue-600 hover:bg-blue-700">
-                  {selectedPatient ? `${selectedPatient.lastname} ${selectedPatient.firstname}` : "Выберите пациента"}
-                </Button>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Врач</label>
-                <Button onClick={() => setIsDoctorModalOpen(true)} className="w-full bg-blue-600 hover:bg-blue-700">
-                  {selectedDoctor ? `${selectedDoctor.lastname} ${selectedDoctor.firstname}` : "Выберите врача"}
-                </Button>
-              </div>
-              <Input
-                label="Дата"
-                name="date"
-                value={formData.date}
-                onChange={handleInputChange}
-                type="date"
-              />
-              {isDoctorAvailable ? (
+        {isNurse() && (
+          <Modal isOpen={isModalOpen} onClose={handleCancel}>
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                {currentAppointment ? "Редактировать прием" : "Создать новый прием"}
+              </h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Пациент</label>
+                  <Button onClick={() => setIsPatientModalOpen(true)} className="w-full bg-blue-600 hover:bg-blue-700">
+                    {selectedPatient ? `${selectedPatient.lastname} ${selectedPatient.firstname}` : "Выберите пациента"}
+                  </Button>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Врач</label>
+                  <Button onClick={() => setIsDoctorModalOpen(true)} className="w-full bg-blue-600 hover:bg-blue-700">
+                    {selectedDoctor ? `${selectedDoctor.lastname} ${selectedDoctor.firstname}` : "Выберите врача"}
+                  </Button>
+                </div>
                 <Input
-                label="Время"
-                name="time"
-                value={formData.time}
-                onChange={handleInputChange}
-                type="select"
-                >
-                  <option value="">Выберите время</option>
-                  {availableTimeSlots.map((slot, index) => (
-                    <option
-                      key={index}
-                      value={slot.time}
-                      disabled={!slot.available}
-                      style={{ color: slot.available ? 'black' : 'lightgray' }}
-                    >
-                      {slot.time}
-                    </option>
-                  ))}
-                </Input>
-              ) : (
-                <p className="text-red-500">Врач не принимает пациентов в выбранную дату.</p>
-              )}
-              <Input
-                label="Причина"
-                name="reason"
-                value={formData.reason}
-                onChange={handleInputChange}
-                type="text"
-              />
-              <div className="flex justify-end space-x-4">
-                <Button type="button" onClick={handleCancel} className="bg-gray-600 hover:bg-gray-700">
-                  Отмена
-                </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={!isDoctorAvailable}>
-                  {currentAppointment ? "Сохранить" : "Создать"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Modal>
-
-        <Modal isOpen={isDoctorModalOpen} onClose={() => setIsDoctorModalOpen(false)}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Выберите врача</h2>
-            <div className="mb-4">
-              <Input
-                type="text"
-                placeholder="Поиск врача..."
-                value={doctorModalSearch}
-                onChange={(e) => setDoctorModalSearch(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            <div className="flex mb-2">
-              <div 
-                className="w-1/3 p-2 font-semibold cursor-pointer"
-                onClick={() => requestDoctorSort('name')}
-              >
-                ФИО {getSortIndicator('name', doctorSortConfig)}
-              </div>
-              <div 
-                className="w-1/3 p-2 font-semibold cursor-pointer"
-                onClick={() => requestDoctorSort('specialty')}
-              >
-                Специальность {getSortIndicator('specialty', doctorSortConfig)}
-              </div>
-            </div>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {filteredDoctors.map((doctor) => (
-                <div
-                  key={doctor.userid}
-                  className="p-4 border rounded-lg cursor-pointer hover:bg-gray-100"
-                  onClick={() => {
-                    setSelectedDoctor(doctor);
-                    setFormData({ ...formData, doctorid: doctor.userid });
-                    setIsDoctorModalOpen(false);
-                  }}
-                >
-                  <p><strong>ФИО:</strong> {doctor.lastname} {doctor.firstname} {doctor.middlename}</p>
-                  <p><strong>Специальность:</strong> {specialties.find(s => s.specialtyid === doctor.specialtyid)?.specialtyname}</p>
+                  label="Дата"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleInputChange}
+                  type="date"
+                />
+                {isDoctorAvailable ? (
+                  <Input
+                  label="Время"
+                  name="time"
+                  value={formData.time}
+                  onChange={handleInputChange}
+                  type="select"
+                  >
+                    <option value="">Выберите время</option>
+                    {availableTimeSlots.map((slot, index) => (
+                      <option
+                        key={index}
+                        value={slot.time}
+                        disabled={!slot.available}
+                        style={{ color: slot.available ? 'black' : 'lightgray' }}
+                      >
+                        {slot.time}
+                      </option>
+                    ))}
+                  </Input>
+                ) : (
+                  <p className="text-red-500">Врач не принимает пациентов в выбранную дату.</p>
+                )}
+                <Input
+                  label="Причина"
+                  name="reason"
+                  value={formData.reason}
+                  onChange={handleInputChange}
+                  type="text"
+                />
+                <div className="flex justify-end space-x-4">
+                  <Button type="button" onClick={handleCancel} className="bg-gray-600 hover:bg-gray-700">
+                    Отмена
+                  </Button>
+                  <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={!isDoctorAvailable}>
+                    {currentAppointment ? "Сохранить" : "Создать"}
+                  </Button>
                 </div>
-              ))}
+              </form>
             </div>
-          </div>
-        </Modal>
+          </Modal>
+        )}
 
-        <Modal isOpen={isPatientModalOpen} onClose={() => setIsPatientModalOpen(false)}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Выберите пациента</h2>
-            <div className="mb-4">
-              <Input
-                type="text"
-                placeholder="Поиск пациента..."
-                value={patientModalSearch}
-                onChange={(e) => setPatientModalSearch(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            <div className="flex mb-2">
-              <div 
-                className="w-1/2 p-2 font-semibold cursor-pointer"
-                onClick={() => requestPatientSort('name')}
-              >
-                ФИО {getSortIndicator('name', patientSortConfig)}
+        {isNurse() && (
+          <Modal isOpen={isDoctorModalOpen} onClose={() => setIsDoctorModalOpen(false)}>
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Выберите врача</h2>
+              <div className="mb-4">
+                <Input
+                  type="text"
+                  placeholder="Поиск врача..."
+                  value={doctorModalSearch}
+                  onChange={(e) => setDoctorModalSearch(e.target.value)}
+                  className="w-full"
+                />
               </div>
-              <div 
-                className="w-1/2 p-2 font-semibold cursor-pointer"
-                onClick={() => requestPatientSort('dateofbirth')}
-              >
-                Дата рождения {getSortIndicator('dateofbirth', patientSortConfig)}
-              </div>
-            </div>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {filteredPatients.map((patient) => (
-                <div
-                  key={patient.patientid}
-                  className="p-4 border rounded-lg cursor-pointer hover:bg-gray-100"
-                  onClick={() => {
-                    setSelectedPatient(patient);
-                    setFormData({ ...formData, patientid: patient.patientid });
-                    setIsPatientModalOpen(false);
-                  }}
+              <div className="flex mb-2">
+                <div 
+                  className="w-1/3 p-2 font-semibold cursor-pointer"
+                  onClick={() => requestDoctorSort('name')}
                 >
-                  <p><strong>ФИО:</strong> {patient.lastname} {patient.firstname} {patient.middlename}</p>
-                  <p><strong>Дата рождения:</strong> {patient.dateofbirth}</p>
-                  <p><strong>Адрес:</strong> {patient.address}</p>
+                  ФИО {getSortIndicator('name', doctorSortConfig)}
                 </div>
-              ))}
+                <div 
+                  className="w-1/3 p-2 font-semibold cursor-pointer"
+                  onClick={() => requestDoctorSort('specialty')}
+                >
+                  Специальность {getSortIndicator('specialty', doctorSortConfig)}
+                </div>
+              </div>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {filteredDoctors.map((doctor) => (
+                  <div
+                    key={doctor.userid}
+                    className="p-4 border rounded-lg cursor-pointer hover:bg-gray-100"
+                    onClick={() => {
+                      setSelectedDoctor(doctor);
+                      setFormData({ ...formData, doctorid: doctor.userid });
+                      setIsDoctorModalOpen(false);
+                    }}
+                  >
+                    <p><strong>ФИО:</strong> {doctor.lastname} {doctor.firstname} {doctor.middlename}</p>
+                    <p><strong>Специальность:</strong> {specialties.find(s => s.specialtyid === doctor.specialtyid)?.specialtyname}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </Modal>
+          </Modal>
+        )}
+        
+        {isNurse() && (
+          <Modal isOpen={isPatientModalOpen} onClose={() => setIsPatientModalOpen(false)}>
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Выберите пациента</h2>
+              <div className="mb-4">
+                <Input
+                  type="text"
+                  placeholder="Поиск пациента..."
+                  value={patientModalSearch}
+                  onChange={(e) => setPatientModalSearch(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="flex mb-2">
+                <div 
+                  className="w-1/2 p-2 font-semibold cursor-pointer"
+                  onClick={() => requestPatientSort('name')}
+                >
+                  ФИО {getSortIndicator('name', patientSortConfig)}
+                </div>
+                <div 
+                  className="w-1/2 p-2 font-semibold cursor-pointer"
+                  onClick={() => requestPatientSort('dateofbirth')}
+                >
+                  Дата рождения {getSortIndicator('dateofbirth', patientSortConfig)}
+                </div>
+              </div>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {filteredPatients.map((patient) => (
+                  <div
+                    key={patient.patientid}
+                    className="p-4 border rounded-lg cursor-pointer hover:bg-gray-100"
+                    onClick={() => {
+                      setSelectedPatient(patient);
+                      setFormData({ ...formData, patientid: patient.patientid });
+                      setIsPatientModalOpen(false);
+                    }}
+                  >
+                    <p><strong>ФИО:</strong> {patient.lastname} {patient.firstname} {patient.middlename}</p>
+                    <p><strong>Дата рождения:</strong> {patient.dateofbirth}</p>
+                    <p><strong>Адрес:</strong> {patient.address}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Modal>
+        )}
       </div>
     </div>
   );

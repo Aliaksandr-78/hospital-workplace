@@ -285,7 +285,7 @@ const MedicalCertificates = () => {
       setFormData({
         patientID: certificate.patientid.toString(),
         issuedBy: user?.userid || "",
-        issuedDate: certificate.issueddate.split('T')[0],
+        issuedDate: new Date(certificate.issueddate).toLocaleDateString('sv-SE'),
         certificateType: certificate.certificatetype,
         details: certificate.details || "",
       })

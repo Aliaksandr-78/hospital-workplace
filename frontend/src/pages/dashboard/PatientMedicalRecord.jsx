@@ -30,6 +30,8 @@ import { getUserById } from "../../api/userApi";
 import { getAllDiagnoses } from "../../api/diagnosisApi";
 import { getAllMedications } from "../../api/medicationApi";
 import { getPatientById } from "../../api/patientApi";
+import { getUserRolesByUserId } from "../../api/userRoleApi";
+import { getAllRoles } from "../../api/roleApi";
 import Button from "../../components/Button";
 import Header from "../../components/Header";
 import Loader from "../../components/Loader";
@@ -53,6 +55,8 @@ const PatientMedicalRecord = () => {
   const [diagnoses, setDiagnoses] = useState([]);
   const [medications, setMedications] = useState([]);
   const [entryPrescriptions, setEntryPrescriptions] = useState([]);
+  const [userRoles, setUserRoles] = useState([]);
+  const [allRoles, setAllRoles] = useState([]);
   
   // Состояния для выбранных элементов
   const [selectedFeature, setSelectedFeature] = useState(null);
@@ -65,6 +69,51 @@ const PatientMedicalRecord = () => {
   const [isLabTestModalOpen, setLabTestModalOpen] = useState(false);
   const [isPrescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
   const [isRecommendationsModalOpen, setRecommendationsModalOpen] = useState(false);
+
+  // Проверка ролей пользователя
+  const isDoctor = useCallback(() => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid);
+      return role && role.rolename === "Doctor";
+    });
+  }, [userRoles, allRoles]);
+
+  const isNurse = useCallback(() => {
+    return userRoles.some(userRole => {
+      const role = allRoles.find(r => r.roleid === userRole.roleid);
+      return role && role.rolename === "Nurse";
+    });
+  }, [userRoles, allRoles]);
+
+  // Проверка, является ли текущий пользователь автором записи
+  const isEntryAuthor = useCallback((entry) => {
+    return entry && user && entry.doctorid === user.userid;
+  }, [user]);
+
+  // Проверка, является ли текущий пользователь автором теста
+  const isLabTestAuthor = useCallback((labTest) => {
+    return labTest && user && (labTest.orderedby === user.userid || labTest.performedby === user.userid);
+  }, [user]);
+
+  // Загрузка ролей пользователя
+  useEffect(() => {
+    const fetchUserRoles = async () => {
+      try {
+        const [rolesData, userRolesData] = await Promise.all([
+          getAllRoles(),
+          user?.userid ? getUserRolesByUserId(user.userid) : Promise.resolve([]),
+        ]);
+        setAllRoles(rolesData);
+        setUserRoles(userRolesData);
+      } catch (error) {
+        console.error("Ошибка при загрузке ролей:", error);
+      }
+    };
+
+    if (user) {
+      fetchUserRoles();
+    }
+  }, [user]);
 
   // Состояния для форм
   const [featureForm, setFeatureForm] = useState({
@@ -724,12 +773,14 @@ const PatientMedicalRecord = () => {
                 </div>
               ))}
             </div>
-            <Button
-              onClick={() => openFeatureModal()}
-              className="w-full bg-green-600 hover:bg-green-700"
-            >
-              Добавить особенность
-            </Button>
+            {isDoctor() && (
+              <Button
+                onClick={() => openFeatureModal()}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                Добавить особенность
+              </Button>
+            )}
           </div>
 
           <div className="bg-white p-4 rounded-lg shadow-md mb-4">
@@ -752,12 +803,14 @@ const PatientMedicalRecord = () => {
                   </div>
                 ))}
             </div>
-            <Button
-              onClick={() => openEntryModal()}
-              className="w-full bg-green-600 hover:bg-green-700"
-            >
-              Создать запись
-            </Button>
+            {isDoctor() && (
+              <Button
+                onClick={() => openEntryModal()}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                Создать запись
+              </Button>
+            )}
           </div>
 
           <div className="bg-white p-4 rounded-lg shadow-md">
@@ -784,12 +837,14 @@ const PatientMedicalRecord = () => {
                   </div>
                 ))}
             </div>
-            <Button
-              onClick={() => openLabTestModal()}
-              className="w-full bg-green-600 hover:bg-green-700"
-            >
-              Создать тест
-            </Button>
+            {(isDoctor() || isNurse()) && (
+              <Button
+                onClick={() => openLabTestModal()}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                Создать тест
+              </Button>
+            )}
           </div>
         </div>
 
@@ -807,26 +862,28 @@ const PatientMedicalRecord = () => {
                 <p><strong>Дата выявления:</strong> {new Date(selectedFeature.dateidentified).toLocaleDateString()}</p>
                 <p><strong>Статус:</strong> {selectedFeature.isactive ? "Активно" : "Неактивно"}</p>
               </div>
-              <div className="flex space-x-2">
-                <Button
-                  onClick={() => openFeatureModal(selectedFeature)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Редактировать
-                </Button>
-                <Button
-                  onClick={() => handleToggleFeatureStatus(selectedFeature.featureid)}
-                  className={selectedFeature.isactive ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"}
-                >
-                  {selectedFeature.isactive ? "Деактивировать" : "Активировать"}
-                </Button>
-                <Button
-                  onClick={() => handleDeleteFeature(selectedFeature.featureid)}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Удалить
-                </Button>
-              </div>
+              {isDoctor() && (
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => openFeatureModal(selectedFeature)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Редактировать
+                  </Button>
+                  <Button
+                    onClick={() => handleToggleFeatureStatus(selectedFeature.featureid)}
+                    className={selectedFeature.isactive ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"}
+                  >
+                    {selectedFeature.isactive ? "Деактивировать" : "Активировать"}
+                  </Button>
+                  <Button
+                    onClick={() => handleDeleteFeature(selectedFeature.featureid)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Удалить
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -842,20 +899,23 @@ const PatientMedicalRecord = () => {
                   <p><strong>Диагноз:</strong> {getDiagnosisName(selectedEntry.diagnosisid)}</p>
                 )}
               </div>
-              <div className="flex space-x-2 mb-4">
-                <Button
-                  onClick={() => openEntryModal(selectedEntry)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Редактировать
-                </Button>
-                <Button
-                  onClick={() => handleDeleteEntry(selectedEntry.entryid)}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Удалить
-                </Button>
-              </div>
+              
+              {isDoctor() && isEntryAuthor(selectedEntry) && (
+                <div className="flex space-x-2 mb-4">
+                  <Button
+                    onClick={() => openEntryModal(selectedEntry)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Редактировать
+                  </Button>
+                  <Button
+                    onClick={() => handleDeleteEntry(selectedEntry.entryid)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Удалить
+                  </Button>
+                </div>
+              )}
 
               <h3 className="text-lg font-semibold mb-2">Назначения</h3>
               <div className="mb-4 space-y-3">
@@ -874,12 +934,14 @@ const PatientMedicalRecord = () => {
                         Рекомендация ИИ ({prescription.airecommendationscore ? `${Math.round(prescription.airecommendationscore * 100)}%` : 'высокая'})
                       </span>
                     )}
-                    <Button
-                      onClick={() => handleRemoveTempPrescription(index)}
-                      className="mt-2 bg-red-600 hover:bg-red-700 text-sm"
-                    >
-                      Удалить
-                    </Button>
+                    {isDoctor() && isEntryAuthor(selectedEntry) && (
+                      <Button
+                        onClick={() => handleRemoveTempPrescription(index)}
+                        className="mt-2 bg-red-600 hover:bg-red-700 text-sm"
+                      >
+                        Удалить
+                      </Button>
+                    )}
                   </div>
                 ))}
 
@@ -902,17 +964,19 @@ const PatientMedicalRecord = () => {
                           </span>
                         )}
                       </div>
-                      <Button
-                        onClick={() => handleDeletePrescription(prescription.prescriptionid)}
-                        className="bg-red-600 hover:bg-red-700 text-sm"
-                      >
-                        Удалить
-                      </Button>
+                      {isDoctor() && isEntryAuthor(selectedEntry) && (
+                        <Button
+                          onClick={() => handleDeletePrescription(prescription.prescriptionid)}
+                          className="bg-red-600 hover:bg-red-700 text-sm"
+                        >
+                          Удалить
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
 
-                {tempPrescriptions.length === 0 && entryPrescriptions.length === 0 && (
+                {(tempPrescriptions.length === 0 && entryPrescriptions.length === 0) && (
                   <div className="text-center py-4 text-gray-500">
                     Нет назначений для этой записи
                   </div>
@@ -920,30 +984,32 @@ const PatientMedicalRecord = () => {
               </div>
 
               {/* Кнопки действий */}
-              <div className="flex space-x-2">
-                <Button
-                  onClick={openPrescriptionModal}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  Добавить назначение
-                </Button>
-                {tempPrescriptions.length > 0 && (
+              {isDoctor() && isEntryAuthor(selectedEntry) && (
+                <div className="flex space-x-2">
                   <Button
-                    onClick={() => handleSaveAll(selectedEntry.entryid)}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={openPrescriptionModal}
+                    className="bg-green-600 hover:bg-green-700"
                   >
-                    Сохранить все
+                    Добавить назначение
                   </Button>
-                )}
-                {selectedEntry.diagnosisid && (
-                  <Button
-                    onClick={getRecommendations}
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    Получить рекомендации
-                  </Button>
-                )}
-              </div>
+                  {tempPrescriptions.length > 0 && (
+                    <Button
+                      onClick={() => handleSaveAll(selectedEntry.entryid)}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Сохранить все
+                    </Button>
+                  )}
+                  {selectedEntry.diagnosisid && (
+                    <Button
+                      onClick={getRecommendations}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      Получить рекомендации
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -965,20 +1031,24 @@ const PatientMedicalRecord = () => {
                   </>
                 )}
               </div>
-              <div className="flex space-x-2">
-                <Button
-                  onClick={() => openLabTestModal(selectedLabTest)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Редактировать
-                </Button>
-                <Button
-                  onClick={() => handleDeleteLabTest(selectedLabTest.resultid)}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Удалить
-                </Button>
-              </div>
+              {(isDoctor() || isNurse()) && isLabTestAuthor(selectedLabTest) && (
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => openLabTestModal(selectedLabTest)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Редактировать
+                  </Button>
+                  {isDoctor() && (
+                    <Button
+                      onClick={() => handleDeleteLabTest(selectedLabTest.resultid)}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Удалить
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

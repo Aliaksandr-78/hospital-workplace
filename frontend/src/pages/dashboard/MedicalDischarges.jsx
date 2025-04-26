@@ -2,7 +2,6 @@ import { useState, useEffect } from "react"
 import { useAuth } from "../../context/AuthContext"
 import { createMedicalDischarge, getAllMedicalDischarges, getMedicalDischargeById, updateMedicalDischarge, deleteMedicalDischarge } from "../../api/medicalDischargeApi"
 import { getAllPatients } from "../../api/patientApi"
-import { getAllUsers } from "../../api/userApi"
 import { getAllRoles } from "../../api/roleApi"
 import { getUserRolesByUserId } from "../../api/userRoleApi"
 import Button from "../../components/Button"
@@ -17,22 +16,18 @@ const MedicalDischarges = () => {
   const [medicalDischarges, setMedicalDischarges] = useState([])
   const [filteredDischarges, setFilteredDischarges] = useState([])
   const [patients, setPatients] = useState([])
-  const [doctors, setDoctors] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentDischarge, setCurrentDischarge] = useState(null)
   const [formData, setFormData] = useState({
-    PatientID: "",
-    DoctorID: user?.UserID || "",
-    DischargeDate: "",
-    Summary: "",
+    patientID: "",
+    dischargeDate: "",
+    summary: "",
   })
   const [searchTerm, setSearchTerm] = useState("")
   const [dateFilter, setDateFilter] = useState("")
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
   const [patientSearch, setPatientSearch] = useState("")
-  const [doctorSearch, setDoctorSearch] = useState("")
   const [filteredPatients, setFilteredPatients] = useState([])
-  const [filteredDoctors, setFilteredDoctors] = useState([])
   const [userRoles, setUserRoles] = useState([])
   const [allRoles, setAllRoles] = useState([])
 
@@ -72,7 +67,7 @@ const MedicalDischarges = () => {
     if (patients.length > 0) {
       setFilteredPatients(
         patients.filter(patient => 
-          `${patient.lastname} ${patient.firstname} ${patient.middlename}`
+          `${patient.lastname || ''} ${patient.firstname || ''} ${patient.middlename || ''}`
             .toLowerCase()
             .includes(patientSearch.toLowerCase())
         )
@@ -80,31 +75,16 @@ const MedicalDischarges = () => {
     }
   }, [patientSearch, patients])
 
-  useEffect(() => {
-    if (doctors.length > 0) {
-      setFilteredDoctors(
-        doctors.filter(doctor => 
-          `${doctor.lastname} ${doctor.firstname} ${doctor.middlename}`
-            .toLowerCase()
-            .includes(doctorSearch.toLowerCase())
-        )
-      )
-    }
-  }, [doctorSearch, doctors])
-
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [dischargesData, patientsData, doctorsData] = await Promise.all([
+      const [dischargesData, patientsData] = await Promise.all([
         getAllMedicalDischarges(),
         getAllPatients(),
-        getAllUsers(),
       ])
       setMedicalDischarges(dischargesData)
       setPatients(patientsData)
       setFilteredPatients(patientsData)
-      setDoctors(doctorsData)
-      setFilteredDoctors(doctorsData)
     } catch (error) {
       console.error("Ошибка при загрузке данных:", error)
     } finally {
@@ -113,58 +93,74 @@ const MedicalDischarges = () => {
   }
 
   const filterAndSortDischarges = () => {
-    let result = [...medicalDischarges]
-    
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase()
-      result = result.filter(discharge => {
-        const patient = patients.find(p => p.patientid === discharge.patientid)
-        if (!patient) return false
-        return (
-          patient.lastname.toLowerCase().includes(searchLower) ||
-          patient.firstname.toLowerCase().includes(searchLower) ||
-          patient.middlename.toLowerCase().includes(searchLower)
-      )})
-    }
-    
-    if (dateFilter) {
-      const filterDate = new Date(dateFilter).toDateString()
-      result = result.filter(discharge => {
-        const dischargeDate = new Date(discharge.dischargedate).toDateString()
-        return dischargeDate === filterDate
-      })
-    }
-    
-    if (sortConfig.key) {
-      result.sort((a, b) => {
-        let valueA, valueB
-        
-        if (sortConfig.key === 'patient') {
-          const patientA = patients.find(p => p.patientid === a.patientid)
-          const patientB = patients.find(p => p.patientid === b.patientid)
-          valueA = patientA ? `${patientA.lastname} ${patientA.firstname} ${patientA.middlename}` : ''
-          valueB = patientB ? `${patientB.lastname} ${patientB.firstname} ${patientB.middlename}` : ''
-        } else if (sortConfig.key === 'doctor') {
-          const doctorA = doctors.find(d => d.userid === a.doctorid)
-          const doctorB = doctors.find(d => d.userid === b.doctorid)
-          valueA = doctorA ? `${doctorA.lastname} ${doctorA.firstname} ${doctorA.middlename}` : ''
-          valueB = doctorB ? `${doctorB.lastname} ${doctorB.firstname} ${doctorB.middlename}` : ''
-        } else {
-          valueA = a[sortConfig.key]
-          valueB = b[sortConfig.key]
+    try {
+      let result = [...medicalDischarges]
+      
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase()
+        result = result.filter(discharge => {
+          const patient = patients.find(p => p.patientid === discharge.patientid)
+          if (!patient) return false
+          
+          const fullName = `${patient.lastname || ''} ${patient.firstname || ''} ${patient.middlename || ''}`.toLowerCase()
+          return fullName.includes(searchLower)
+        })
+      }
+      
+      if (dateFilter) {
+        try {
+          const filterDate = new Date(dateFilter).toDateString()
+          result = result.filter(discharge => {
+            try {
+              const dischargeDate = new Date(discharge.dischargedate).toDateString()
+              return dischargeDate === filterDate
+            } catch (e) {
+              console.error("Ошибка обработки даты выписки:", e)
+              return false
+            }
+          })
+        } catch (e) {
+          console.error("Ошибка обработки даты фильтра:", e)
         }
-        
-        if (valueA < valueB) {
-          return sortConfig.direction === 'asc' ? -1 : 1
-        }
-        if (valueA > valueB) {
-          return sortConfig.direction === 'asc' ? 1 : -1
-        }
-        return 0
-      })
+      }
+      
+      if (sortConfig.key) {
+        result.sort((a, b) => {
+          try {
+            let valueA, valueB
+            
+            if (sortConfig.key === 'patient') {
+              const patientA = patients.find(p => p.patientid === a.patientid)
+              const patientB = patients.find(p => p.patientid === b.patientid)
+              valueA = patientA ? `${patientA.lastname || ''} ${patientA.firstname || ''} ${patientA.middlename || ''}` : ''
+              valueB = patientB ? `${patientB.lastname || ''} ${patientB.firstname || ''} ${patientB.middlename || ''}` : ''
+            } else if (sortConfig.key === 'doctor') {
+              valueA = a.doctorid
+              valueB = b.doctorid
+            } else {
+              valueA = a[sortConfig.key] || ''
+              valueB = b[sortConfig.key] || ''
+            }
+            
+            if (valueA < valueB) {
+              return sortConfig.direction === 'asc' ? -1 : 1
+            }
+            if (valueA > valueB) {
+              return sortConfig.direction === 'asc' ? 1 : -1
+            }
+            return 0
+          } catch (e) {
+            console.error("Ошибка сортировки:", e)
+            return 0
+          }
+        })
+      }
+      
+      setFilteredDischarges(result)
+    } catch (error) {
+      console.error("Ошибка в filterAndSortDischarges:", error)
+      setFilteredDischarges([])
     }
-    
-    setFilteredDischarges(result)
   }
 
   const requestSort = (key) => {
@@ -189,55 +185,66 @@ const MedicalDischarges = () => {
   }
 
   const handlePatientSearchChange = (e) => {
-    setPatientSearch(e.target.value)
-  }
-
-  const handleDoctorSearchChange = (e) => {
-    setDoctorSearch(e.target.value)
+    try {
+      const searchValue = e.target.value
+      setPatientSearch(searchValue)
+      
+      if (!searchValue) {
+        setFilteredPatients(patients)
+        return
+      }
+      
+      const searchLower = searchValue.toLowerCase()
+      const filtered = patients.filter(patient => {
+        const fullName = `${patient.lastname || ''} ${patient.firstname || ''} ${patient.middlename || ''}`.toLowerCase()
+        return fullName.includes(searchLower)
+      })
+      
+      setFilteredPatients(filtered)
+    } catch (error) {
+      console.error("Ошибка при поиске пациента:", error)
+      setFilteredPatients(patients)
+    }
   }
 
   const handleSelectPatient = (patientId) => {
-    setFormData({ ...formData, PatientID: patientId })
+    setFormData({ ...formData, patientID: patientId })
     setPatientSearch("")
-  }
-
-  const handleSelectDoctor = (doctorId) => {
-    setFormData({ ...formData, DoctorID: doctorId })
-    setDoctorSearch("")
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      // Проверка что дата не раньше сегодняшнего дня
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      const dischargeDate = new Date(formData.DischargeDate)
+      const dischargeDate = new Date(formData.dischargeDate)
       
       if (dischargeDate < today) {
         alert('Дата выписки не может быть раньше сегодняшнего дня')
         return
       }
-
-      if (!formData.PatientID || !formData.DoctorID || !formData.DischargeDate) {
+  
+      if (!formData.patientID || !formData.dischargeDate) {
         alert('Пожалуйста, заполните все обязательные поля')
         return
       }
-      
-      const dataToSend = {
-        ...formData,
-        DischargeDate: new Date(formData.DischargeDate).toISOString()
+  
+      if (!user?.userid) {
+        alert('Ошибка авторизации. Пожалуйста, войдите снова.')
+        return
       }
-      
+  
+      const dischargeData = {
+        PatientID: Number(formData.patientID),
+        DoctorID: Number(user.userid),
+        DischargeDate: formData.dischargeDate,
+        Summary: formData.summary || null
+      }
+  
       if (currentDischarge) {
-        // Проверка что врач редактирует свою выписку
-        if (currentDischarge.doctorid !== user?.UserID) {
-          alert('Вы можете редактировать только свои выписки')
-          return
-        }
-        await updateMedicalDischarge(currentDischarge.dischargeid, dataToSend)
+        await updateMedicalDischarge(currentDischarge.dischargeid, dischargeData)
       } else {
-        await createMedicalDischarge(dataToSend)
+        await createMedicalDischarge(dischargeData)
       }
       setIsModalOpen(false)
       fetchData()
@@ -252,21 +259,14 @@ const MedicalDischarges = () => {
       const discharge = await getMedicalDischargeById(dischargeID)
       setCurrentDischarge(discharge)
       setFormData({
-        PatientID: discharge.patientid,
-        DoctorID: discharge.doctorid,
-        DischargeDate: discharge.dischargedate.split('T')[0],
-        Summary: discharge.summary,
+        patientID: discharge.patientid.toString(),
+        dischargeDate: new Date(discharge.dischargedate).toLocaleDateString('sv-SE'),
+        summary: discharge.summary || "",
       })
       
-      // Установка поисковых значений для отображения выбранных значений
       const patient = patients.find(p => p.patientid === discharge.patientid)
       if (patient) {
         setPatientSearch(`${patient.lastname} ${patient.firstname} ${patient.middlename}`)
-      }
-      
-      const doctor = doctors.find(d => d.userid === discharge.doctorid)
-      if (doctor) {
-        setDoctorSearch(`${doctor.lastname} ${doctor.firstname} ${doctor.middlename}`)
       }
       
       setIsModalOpen(true)
@@ -279,7 +279,7 @@ const MedicalDischarges = () => {
     try {
       // Проверка что врач удаляет свою выписку
       const discharge = medicalDischarges.find(d => d.dischargeid === dischargeID)
-      if (discharge?.doctorid !== user?.UserID) {
+      if (discharge?.doctorid !== user?.userid) {
         alert('Вы можете удалять только свои выписки')
         return
       }
@@ -295,13 +295,11 @@ const MedicalDischarges = () => {
     setIsModalOpen(false)
     setCurrentDischarge(null)
     setFormData({
-      PatientID: "",
-      DoctorID: user?.UserID || "",
-      DischargeDate: "",
-      Summary: "",
+      patientID: "",
+      dischargeDate: "",
+      summary: "",
     })
     setPatientSearch("")
-    setDoctorSearch("")
   }
 
   const getSortIndicator = (key) => {
@@ -310,15 +308,9 @@ const MedicalDischarges = () => {
   }
 
   const getSelectedPatientName = () => {
-    if (!formData.PatientID) return ""
-    const patient = patients.find(p => p.patientid === formData.PatientID)
+    if (!formData.patientID) return ""
+    const patient = patients.find(p => p.patientid === Number(formData.patientID))
     return patient ? `${patient.lastname} ${patient.firstname} ${patient.middlename}` : ""
-  }
-
-  const getSelectedDoctorName = () => {
-    if (!formData.DoctorID) return ""
-    const doctor = doctors.find(d => d.userid === formData.DoctorID)
-    return doctor ? `${doctor.lastname} ${doctor.firstname} ${doctor.middlename}` : ""
   }
 
   return (
@@ -333,7 +325,7 @@ const MedicalDischarges = () => {
         ) : (
           <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between mb-4 flex-wrap gap-4">
-              <div className="flex space-x-4">
+              <div className="flex space-x-4 flex-wrap">
                 <Input
                   type="text"
                   placeholder="Поиск по пациенту..."
@@ -376,12 +368,7 @@ const MedicalDischarges = () => {
                     >
                       Пациент {getSortIndicator('patient')}
                     </th>
-                    <th 
-                      className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
-                      onClick={() => requestSort('doctor')}
-                    >
-                      Врач {getSortIndicator('doctor')}
-                    </th>
+                    <th className="py-2 px-4 border-b">Врач</th>
                     <th 
                       className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
                       onClick={() => requestSort('dischargedate')}
@@ -389,7 +376,7 @@ const MedicalDischarges = () => {
                       Дата выписки {getSortIndicator('dischargedate')}
                     </th>
                     <th className="py-2 px-4 border-b">Заключение</th>
-                    {isDoctor() && (<th className="py-2 px-4 border-b">Действия</th>)}
+                    {isDoctor() && <th className="py-2 px-4 border-b">Действия</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -402,28 +389,30 @@ const MedicalDischarges = () => {
                           {patients.find((p) => p.patientid === discharge.patientid)?.middlename}
                         </td>
                         <td className="py-2 px-4 border-b">
-                          {doctors.find((d) => d.userid === discharge.doctorid)?.lastname}{" "}
-                          {doctors.find((d) => d.userid === discharge.doctorid)?.firstname}{" "}
-                          {doctors.find((d) => d.userid === discharge.doctorid)?.middlename}
+                          {user?.lastname} {user?.firstname} {user?.middlename}
                         </td>
                         <td className="py-2 px-4 border-b">{new Date(discharge.dischargedate).toLocaleDateString()}</td>
                         <td className="py-2 px-4 border-b">{discharge.summary}</td>
                         {isDoctor() && (
                           <td className="py-2 px-4 border-b whitespace-nowrap">
-                            <div className="flex space-x-2">
-                              <Button 
-                                onClick={() => handleEdit(discharge.dischargeid)} 
-                                className="bg-blue-600 hover:bg-blue-700"
-                              >
-                                Редактировать
-                              </Button>
-                              <Button 
-                                onClick={() => handleDelete(discharge.dischargeid)} 
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Удалить
-                              </Button>
-                            </div>
+                            {discharge.doctorid === user.userid ? (
+                              <div className="flex space-x-2">
+                                <Button 
+                                  onClick={() => handleEdit(discharge.dischargeid)} 
+                                  className="bg-blue-600 hover:bg-blue-700"
+                                >
+                                  Редактировать
+                                </Button>
+                                <Button 
+                                  onClick={() => handleDelete(discharge.dischargeid)} 
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Удалить
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-gray-500">Только для автора</span>
+                            )}
                           </td>
                         )}
                       </tr>
@@ -449,7 +438,7 @@ const MedicalDischarges = () => {
               </h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Пациент</label>
+                  <label className="block text-sm font-medium text-gray-700">Пациент *</label>
                   <Input
                     type="text"
                     placeholder="Поиск пациента..."
@@ -457,7 +446,7 @@ const MedicalDischarges = () => {
                     onChange={handlePatientSearchChange}
                     className="w-full"
                   />
-                  {formData.PatientID && (
+                  {formData.patientID && (
                     <div className="p-2 bg-gray-100 rounded">
                       Выбран: {getSelectedPatientName()}
                     </div>
@@ -466,7 +455,7 @@ const MedicalDischarges = () => {
                     {filteredPatients.map(patient => (
                       <div 
                         key={patient.patientid}
-                        className={`p-2 hover:bg-blue-50 cursor-pointer ${formData.PatientID === patient.patientid ? 'bg-blue-100' : ''}`}
+                        className={`p-2 hover:bg-blue-50 cursor-pointer ${formData.patientID === patient.patientid.toString() ? 'bg-blue-100' : ''}`}
                         onClick={() => handleSelectPatient(patient.patientid)}
                       >
                         {patient.lastname} {patient.firstname} {patient.middlename}
@@ -477,43 +466,23 @@ const MedicalDischarges = () => {
 
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Врач</label>
-                  <Input
-                    type="text"
-                    placeholder="Поиск врача..."
-                    value={doctorSearch}
-                    onChange={handleDoctorSearchChange}
-                    className="w-full"
-                  />
-                  {formData.DoctorID && (
-                    <div className="p-2 bg-gray-100 rounded">
-                      Выбран: {getSelectedDoctorName()}
-                    </div>
-                  )}
-                  <div className="max-h-60 overflow-y-auto border rounded">
-                    {filteredDoctors.map(doctor => (
-                      <div 
-                        key={doctor.userid}
-                        className={`p-2 hover:bg-blue-50 cursor-pointer ${formData.DoctorID === doctor.userid ? 'bg-blue-100' : ''}`}
-                        onClick={() => handleSelectDoctor(doctor.userid)}
-                      >
-                        {doctor.lastname} {doctor.firstname} {doctor.middlename}
-                      </div>
-                    ))}
+                  <div className="p-2 bg-gray-100 rounded">
+                    {user?.lastname} {user?.firstname} {user?.middlename}
                   </div>
                 </div>
 
                 <Input
-                  label="Дата выписки"
-                  name="DischargeDate"
-                  value={formData.DischargeDate}
+                  label="Дата выписки *"
+                  name="dischargeDate"
+                  value={formData.dischargeDate}
                   onChange={handleInputChange}
                   type="date"
                   required
                 />
                 <Input
                   label="Заключение"
-                  name="Summary"
-                  value={formData.Summary}
+                  name="summary"
+                  value={formData.summary}
                   onChange={handleInputChange}
                   type="textarea"
                 />
