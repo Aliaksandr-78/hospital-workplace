@@ -4,6 +4,7 @@ import { createMedicalDischarge, getAllMedicalDischarges, getMedicalDischargeByI
 import { getAllPatients } from "../../api/patientApi"
 import { getAllRoles } from "../../api/roleApi"
 import { getUserRolesByUserId } from "../../api/userRoleApi"
+import { getAllUsers } from "../../api/userApi"
 import Button from "../../components/Button"
 import Loader from "../../components/Loader"
 import Header from "../../components/Header"
@@ -30,6 +31,7 @@ const MedicalDischarges = () => {
   const [filteredPatients, setFilteredPatients] = useState([])
   const [userRoles, setUserRoles] = useState([])
   const [allRoles, setAllRoles] = useState([])
+  const [allUsers, setAllUsers] = useState([])
 
   // Проверка ролей
   const isDoctor = () => {
@@ -76,21 +78,23 @@ const MedicalDischarges = () => {
   }, [patientSearch, patients])
 
   const fetchData = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const [dischargesData, patientsData] = await Promise.all([
+      const [dischargesData, patientsData, usersData] = await Promise.all([
         getAllMedicalDischarges(),
         getAllPatients(),
-      ])
-      setMedicalDischarges(dischargesData)
-      setPatients(patientsData)
-      setFilteredPatients(patientsData)
+        getAllUsers(), // Загружаем всех пользователей
+      ]);
+      setMedicalDischarges(dischargesData);
+      setPatients(patientsData);
+      setAllUsers(usersData); // Сохраняем пользователей в состояние
+      setFilteredPatients(patientsData);
     } catch (error) {
-      console.error("Ошибка при загрузке данных:", error)
+      console.error("Ошибка при загрузке данных:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const filterAndSortDischarges = () => {
     try {
@@ -170,6 +174,12 @@ const MedicalDischarges = () => {
     }
     setSortConfig({ key, direction })
   }
+
+  const getDoctorFullName = (doctorId) => {
+    const doctor = allUsers.find(u => u.userid === doctorId);
+    if (!doctor) return "Неизвестно";
+    return `${doctor.lastname || ''} ${doctor.firstname || ''} ${doctor.middlename || ''}`.trim();
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -389,7 +399,7 @@ const MedicalDischarges = () => {
                           {patients.find((p) => p.patientid === discharge.patientid)?.middlename}
                         </td>
                         <td className="py-2 px-4 border-b">
-                          {user?.lastname} {user?.firstname} {user?.middlename}
+                        {getDoctorFullName(discharge.doctorid)}
                         </td>
                         <td className="py-2 px-4 border-b">{new Date(discharge.dischargedate).toLocaleDateString()}</td>
                         <td className="py-2 px-4 border-b">{discharge.summary}</td>

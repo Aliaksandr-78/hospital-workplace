@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import {
   createSchedule,
@@ -48,26 +48,26 @@ const ManageSchedules = () => {
   });
 
   // Проверка ролей
-  const isAdmin = () => {
+  const isAdmin = useMemo(() => {
     return userRoles.some(userRole => {
       const role = allRoles.find(r => r.roleid === userRole.roleid);
       return role && role.rolename === "Admin";
     });
-  };
+  }, [userRoles, allRoles]);
 
-  const isNurse = () => {
+  const isNurse = useMemo(() => {
     return userRoles.some(userRole => {
       const role = allRoles.find(r => r.roleid === userRole.roleid);
       return role && role.rolename === "Nurse";
     });
-  };
+  }, [userRoles, allRoles]);
 
-  const isDoctor = () => {
+  const isDoctor = useMemo(() => {
     return userRoles.some(userRole => {
       const role = allRoles.find(r => r.roleid === userRole.roleid);
       return role && role.rolename === "Doctor";
     });
-  };
+  }, [userRoles, allRoles]);
 
   // Загрузка данных
   useEffect(() => {
@@ -119,7 +119,7 @@ const ManageSchedules = () => {
     let result = [...schedules];
     
     // Для доктора показываем только его расписание начиная с сегодняшнего дня
-    if (isDoctor()) {
+    if (isDoctor) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -332,7 +332,7 @@ const ManageSchedules = () => {
 
       <div className="container mx-auto p-4">
         <h1 className="text-3xl font-bold mb-6 text-center">
-          {isDoctor() ? "Мое расписание" : "Управление расписанием"}
+          {isDoctor ? "Мое расписание" : "Управление расписанием"}
         </h1>
 
         {loading && <Loader className="flex justify-center my-8" />}
@@ -346,7 +346,7 @@ const ManageSchedules = () => {
               value={doctorSearch}
               onChange={handleDoctorSearchChange}
               className="w-64"
-              disabled={isDoctor()}
+              disabled={isDoctor}
             />
             <Input
               type="date"
@@ -363,7 +363,7 @@ const ManageSchedules = () => {
               </Button>
             )}
           </div>
-          {(isAdmin() || isNurse()) && (
+          {(isAdmin || isNurse) && (
             <Button onClick={() => openModal()} className="bg-green-600 hover:bg-green-700">
               Добавить расписание
             </Button>
@@ -375,7 +375,7 @@ const ManageSchedules = () => {
             <table className="min-w-full bg-white">
               <thead>
                 <tr>
-                  {!isDoctor() && (
+                  {!isDoctor && (
                     <th 
                       className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
                       onClick={() => requestSort('doctor')}
@@ -407,7 +407,7 @@ const ManageSchedules = () => {
                   >
                     Тип события {getSortIndicator('eventtype')}
                   </th>
-                  {(isAdmin() || isNurse()) && (<th className="py-2 px-4 border-b">Действия</th>)}
+                  {(isAdmin || isNurse) && (<th className="py-2 px-4 border-b">Действия</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -418,7 +418,7 @@ const ManageSchedules = () => {
                     
                     return (
                       <tr key={schedule.scheduleid} className="hover:bg-gray-50">
-                        {!isDoctor() && (
+                        {!isDoctor && (
                           <td className="py-2 px-4 border-b">
                             {doctor ? `${doctor.lastname} ${doctor.firstname} ${doctor.middlename }` : 'Неизвестный врач'}
                           </td>
@@ -435,7 +435,7 @@ const ManageSchedules = () => {
                         <td className="py-2 px-4 border-b">
                           {eventType?.eventname || 'Неизвестный тип'}
                         </td>
-                        {(isAdmin() || isNurse()) && (
+                        {(isAdmin || isNurse) && (
                           <td className="py-2 px-4 border-b whitespace-nowrap">
                             <div className="flex space-x-2">
                                 <Button
@@ -458,7 +458,7 @@ const ManageSchedules = () => {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={isDoctor() ? 5 : 6} className="py-4 text-center text-gray-500">
+                    <td colSpan={isDoctor ? 5 : 6} className="py-4 text-center text-gray-500">
                       {schedules.length === 0 ? "Нет данных о расписаниях" : "Ничего не найдено"}
                     </td>
                   </tr>
@@ -468,7 +468,7 @@ const ManageSchedules = () => {
           </div>
         </div>
 
-        {(isAdmin() || isNurse()) && (
+        {(isAdmin || isNurse) && (
           <Modal isOpen={isModalOpen} onClose={closeModal}>
             <div className="p-6">
               <h2 className="text-xl font-semibold mb-4">
