@@ -377,84 +377,89 @@ const ManageDiagnosis = () => {
     <div className="min-h-screen bg-gray-100">
       <Header appName="Управление диагнозами" />
 
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">
+      <div className="container mx-auto p-3 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">
           Управление диагнозами
         </h1>
 
-        {loading && <Loader className="flex justify-center my-8" />}
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {loading && <Loader className="flex justify-center my-6 sm:my-8" />}
+        {error && <p className="text-red-500 text-center mb-3 sm:mb-4 text-sm sm:text-base">{error}</p>}
 
-        <div className="flex justify-between mb-4">
+        <div className="flex flex-col sm:flex-row justify-between mb-4 gap-3">
           <Input
             type="text"
             placeholder="Поиск по названию или коду"
             value={searchTerm}
             onChange={handleSearchChange}
-            className="w-64"
+            className="w-full sm:w-64"
           />
-          <Button onClick={() => openModal()} className="bg-green-600 hover:bg-green-700">
+          <Button 
+            onClick={() => openModal()} 
+            className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
+          >
             Добавить диагноз
           </Button>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
+        <div className="bg-white p-3 sm:p-6 rounded-lg shadow-md overflow-x-auto">
           <table className="min-w-full bg-white">
             <thead>
               <tr>
                 <th 
-                  className="py-2 px-4 border-b cursor-pointer" 
+                  className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer" 
                   onClick={() => requestSort("diagnosisid")}
                 >
                   ID <SortIndicator field="diagnosisid" />
                 </th>
                 <th 
-                  className="py-2 px-4 border-b cursor-pointer" 
+                  className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer" 
                   onClick={() => requestSort("icd10code")}
                 >
                   Код МКБ-10 <SortIndicator field="icd10code" />
                 </th>
                 <th 
-                  className="py-2 px-4 border-b cursor-pointer" 
+                  className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer" 
                   onClick={() => requestSort("name")}
                 >
                   Название <SortIndicator field="name" />
                 </th>
-                <th className="py-2 px-4 border-b">Действия</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Действия</th>
               </tr>
             </thead>
             <tbody>
               {filteredDiagnoses.length > 0 ? (
                 filteredDiagnoses.map(diagnosis => (
                   <tr key={diagnosis.diagnosisid} className="hover:bg-gray-50">
-                    <td className="py-2 px-4 border-b">{diagnosis.diagnosisid}</td>
-                    <td className="py-2 px-4 border-b font-mono">{diagnosis.icd10code}</td>
-                    <td className="py-2 px-4 border-b">{diagnosis.name}</td>
-                    <td className="py-2 px-4 border-b space-x-2">
-                      <Button
-                        onClick={() => openDetailModal(diagnosis)}
-                        className="bg-purple-600 hover:bg-purple-700"
-                      >
-                        Подробнее
-                      </Button>
-                      <Button
-                        onClick={() => openModal(diagnosis)}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        Редактировать
-                      </Button>
-                      <Button
-                        onClick={() => handleDelete(diagnosis.diagnosisid)}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Удалить
-                      </Button>
+                    <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{diagnosis.diagnosisid}</td>
+                    <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm font-mono">{diagnosis.icd10code}</td>
+                    <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{diagnosis.name}</td>
+                    <td className="py-2 px-2 sm:px-4 border-b">
+                      <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                        <Button
+                          onClick={() => openDetailModal(diagnosis)}
+                          className="bg-purple-600 hover:bg-purple-700 text-xs sm:text-sm"
+                        >
+                          Подробнее
+                        </Button>
+                        <Button
+                          onClick={() => openModal(diagnosis)}
+                          className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
+                        >
+                          Редактировать
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(diagnosis.diagnosisid)}
+                          className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
+                        >
+                          Удалить
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="4" className="py-4 text-center text-gray-500">
+                  <td colSpan="4" className="py-4 text-center text-xs sm:text-sm text-gray-500">
                     Диагнозы не найдены
                   </td>
                 </tr>
@@ -463,14 +468,13 @@ const ManageDiagnosis = () => {
           </table>
         </div>
 
-        {/* Модальное окно для диагноза */}
         <Modal isOpen={isModalOpen} onClose={closeModal} size="lg">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
               {currentDiagnosis ? "Редактировать диагноз" : "Добавить диагноз"}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 <Input
                   label="Код МКБ-10*"
                   name="ICD10Code"
@@ -516,15 +520,15 @@ const ManageDiagnosis = () => {
                 placeholder="Ссылки на клинические протоколы Республики Беларусь"
               />
 
-              <div className="flex justify-end space-x-4 pt-4">
+              <div className="flex justify-end gap-3 sm:gap-4 pt-4">
                 <Button
                   type="button"
                   onClick={closeModal}
-                  className="bg-gray-600 hover:bg-gray-700"
+                  className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
                 >
                   Отмена
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                <Button type="submit" className="bg-green-600 hover:bg-green-700 text-sm sm:text-base">
                   {currentDiagnosis ? "Сохранить" : "Добавить"}
                 </Button>
               </div>
@@ -532,49 +536,48 @@ const ManageDiagnosis = () => {
           </div>
         </Modal>
 
-        {/* Модальное окно с подробной информацией о диагнозе */}
         <Modal isOpen={isDetailModalOpen} onClose={closeDetailModal} size="xl">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
               Подробная информация о диагнозе
             </h2>
             
             {currentDiagnosis && (
-              <div className="space-y-4 mb-6">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3 sm:space-y-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <p className="font-medium">Код МКБ-10:</p>
-                    <p className="font-mono">{currentDiagnosis.icd10code}</p>
+                    <p className="font-medium text-sm sm:text-base">Код МКБ-10:</p>
+                    <p className="font-mono text-sm sm:text-base">{currentDiagnosis.icd10code}</p>
                   </div>
                   <div>
-                    <p className="font-medium">Название:</p>
-                    <p>{currentDiagnosis.name}</p>
+                    <p className="font-medium text-sm sm:text-base">Название:</p>
+                    <p className="text-sm sm:text-base">{currentDiagnosis.name}</p>
                   </div>
                 </div>
                 
                 <div>
-                  <p className="font-medium">Описание:</p>
-                  <p className="whitespace-pre-line">{currentDiagnosis.description || "Нет данных"}</p>
+                  <p className="font-medium text-sm sm:text-base">Описание:</p>
+                  <p className="whitespace-pre-line text-sm sm:text-base">{currentDiagnosis.description || "Нет данных"}</p>
                 </div>
                 
                 <div>
-                  <p className="font-medium">Симптомы:</p>
-                  <p className="whitespace-pre-line">{currentDiagnosis.symptoms || "Нет данных"}</p>
+                  <p className="font-medium text-sm sm:text-base">Симптомы:</p>
+                  <p className="whitespace-pre-line text-sm sm:text-base">{currentDiagnosis.symptoms || "Нет данных"}</p>
                 </div>
                 
                 <div>
-                  <p className="font-medium">Клинические протоколы РБ:</p>
-                  <p className="whitespace-pre-line">{currentDiagnosis.rbclinicalguidelines || "Нет данных"}</p>
+                  <p className="font-medium text-sm sm:text-base">Клинические протоколы РБ:</p>
+                  <p className="whitespace-pre-line text-sm sm:text-base">{currentDiagnosis.rbclinicalguidelines || "Нет данных"}</p>
                 </div>
               </div>
             )}
 
             <div className="mt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Рекомендуемые лекарства</h3>
+              <div className="flex flex-col sm:flex-row justify-between items-center mb-3 sm:mb-4 gap-3">
+                <h3 className="text-base sm:text-lg font-semibold">Рекомендуемые лекарства</h3>
                 <Button 
                   onClick={() => openMedicationModal(null, currentDiagnosis.diagnosisid)}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
                 >
                   Добавить лекарство
                 </Button>
@@ -587,41 +590,43 @@ const ManageDiagnosis = () => {
                   <table className="min-w-full bg-white border">
                     <thead>
                       <tr>
-                        <th className="py-2 px-4 border-b">Название</th>
-                        <th className="py-2 px-4 border-b">Рег. номер</th>
-                        <th className="py-2 px-4 border-b">Уверенность</th>
-                        <th className="py-2 px-4 border-b">Первая линия</th>
-                        <th className="py-2 px-4 border-b">Протокол</th>
-                        <th className="py-2 px-4 border-b">Действия</th>
+                        <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Название</th>
+                        <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Рег. номер</th>
+                        <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Уверенность</th>
+                        <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Первая линия</th>
+                        <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Протокол</th>
+                        <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Действия</th>
                       </tr>
                     </thead>
                     <tbody>
                       {medications.map(medication => (
                         <tr key={`${medication.diagnosisId}-${medication.medicationId}`} className="hover:bg-gray-50">
-                          <td className="py-2 px-4 border-b">
+                          <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">
                             {medication.medicationName || "Неизвестное лекарство"}
                           </td>
-                          <td className="py-2 px-4 border-b">
+                          <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">
                             {medication.registrationNumber || "-"}
                           </td>
-                          <td className="py-2 px-4 border-b">{medication.confidence}</td>
-                          <td className="py-2 px-4 border-b">
+                          <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{medication.confidence}</td>
+                          <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">
                             {medication.isFirstLine ? "Да" : "Нет"}
                           </td>
-                          <td className="py-2 px-4 border-b">{medication.protocolReference || "-"}</td>
-                          <td className="py-2 px-4 border-b space-x-2">
-                            <Button
-                              onClick={() => openMedicationModal(medication, medication.diagnosisId)}
-                              className="bg-blue-600 hover:bg-blue-700 text-sm"
-                            >
-                              Редактировать
-                            </Button>
-                            <Button
-                              onClick={() => handleDeleteMedication(medication.diagnosisId, medication.medicationId)}
-                              className="bg-red-600 hover:bg-red-700 text-sm"
-                            >
-                              Удалить
-                            </Button>
+                          <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{medication.protocolReference || "-"}</td>
+                          <td className="py-2 px-2 sm:px-4 border-b">
+                            <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                              <Button
+                                onClick={() => openMedicationModal(medication, medication.diagnosisId)}
+                                className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
+                              >
+                                Редактировать
+                              </Button>
+                              <Button
+                                onClick={() => handleDeleteMedication(medication.diagnosisId, medication.medicationId)}
+                                className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
+                              >
+                                Удалить
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -629,7 +634,7 @@ const ManageDiagnosis = () => {
                   </table>
                 </div>
               ) : (
-                <p className="text-gray-500 py-4">Для этого диагноза пока нет рекомендуемых лекарств</p>
+                <p className="text-gray-500 text-sm sm:text-base py-4">Для этого диагноза пока нет рекомендуемых лекарств</p>
               )}
             </div>
 
@@ -637,7 +642,7 @@ const ManageDiagnosis = () => {
               <Button
                 type="button"
                 onClick={closeDetailModal}
-                className="bg-gray-600 hover:bg-gray-700"
+                className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
               >
                 Закрыть
               </Button>
@@ -645,15 +650,14 @@ const ManageDiagnosis = () => {
           </div>
         </Modal>
 
-        {/* Модальное окно для добавления/редактирования лекарства */}
         <Modal isOpen={isMedicationModalOpen} onClose={closeMedicationModal} size="md">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
               {currentMedication ? "Редактировать связь" : "Добавить лекарство"}
             </h2>
-            <form onSubmit={handleMedicationSubmit} className="space-y-4">
+            <form onSubmit={handleMedicationSubmit} className="space-y-3 sm:space-y-4">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Лекарство*</label>
+                <label className="block text-sm sm:text-base font-medium text-gray-700">Лекарство*</label>
                 <Input
                   type="text"
                   placeholder="Поиск лекарства..."
@@ -662,11 +666,11 @@ const ManageDiagnosis = () => {
                   className="w-full"
                 />
                 {medicationFormData.MedicationID && (
-                  <div className="p-2 bg-gray-100 rounded">
+                  <div className="p-2 bg-gray-100 rounded text-sm sm:text-base">
                     Выбрано: {getSelectedMedicationName()}
                   </div>
                 )}
-                <div className="max-h-60 overflow-y-auto border rounded">
+                <div className="max-h-60 overflow-y-auto border rounded text-sm sm:text-base">
                   {filteredMedicationsList.map(medication => (
                     <div 
                       key={medication.medicationid}
@@ -699,7 +703,7 @@ const ManageDiagnosis = () => {
                   onChange={handleMedicationInputChange}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="IsFirstLine" className="ml-2 block text-sm text-gray-900">
+                <label htmlFor="IsFirstLine" className="ml-2 block text-sm sm:text-base text-gray-900">
                   Препарат первой линии
                 </label>
               </div>
@@ -712,15 +716,15 @@ const ManageDiagnosis = () => {
                 placeholder="Номер приказа/протокола МЗ РБ"
               />
 
-              <div className="flex justify-end space-x-4 pt-4">
+              <div className="flex justify-end gap-3 sm:gap-4 pt-4">
                 <Button
                   type="button"
                   onClick={closeMedicationModal}
-                  className="bg-gray-600 hover:bg-gray-700"
+                  className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
                 >
                   Отмена
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                <Button type="submit" className="bg-green-600 hover:bg-green-700 text-sm sm:text-base">
                   {currentMedication ? "Сохранить" : "Добавить"}
                 </Button>
               </div>
@@ -729,7 +733,7 @@ const ManageDiagnosis = () => {
         </Modal>
       </div>
     </div>
-  )
+  );
 }
 
 export default ManageDiagnosis

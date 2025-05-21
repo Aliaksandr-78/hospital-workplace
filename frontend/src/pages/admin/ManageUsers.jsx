@@ -342,28 +342,29 @@ const ManageUsers = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       <Header appName="Управление пользователями" />
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">
+      <div className="container mx-auto p-3 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">
           Управление пользователями
         </h1>
-        {loading && <Loader className="flex justify-center my-8" />}
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {loading && <Loader className="flex justify-center my-6 sm:my-8" />}
+        {error && <p className="text-red-500 text-center mb-3 sm:mb-4 text-sm sm:text-base">{error}</p>}
         
         {/* Панель поиска и фильтрации */}
-        <div className="flex justify-between mb-4 flex-wrap gap-4">
-          <div className="flex space-x-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row justify-between mb-4 gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 flex-grow">
             <Input
               type="text"
               placeholder="Поиск по ФИО или email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-64"
+              className="w-full sm:w-48 md:w-64"
             />
             <Input
               name="roleFilter"
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
               type="select"
+              className="w-full sm:w-48 sm:"
             >
               <option value="">Все роли</option>
               {roles.map((role) => (
@@ -377,6 +378,7 @@ const ManageUsers = () => {
               value={specialtyFilter}
               onChange={(e) => setSpecialtyFilter(e.target.value)}
               type="select"
+              className="w-full sm:w-48"
             >
               <option value="">Все специальности</option>
               {specialties.map((spec) => (
@@ -388,7 +390,7 @@ const ManageUsers = () => {
             {(searchTerm || roleFilter || specialtyFilter) && (
               <Button 
                 onClick={resetFilters}
-                className="bg-gray-600 hover:bg-gray-700"
+                className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
               >
                 Сбросить фильтры
               </Button>
@@ -396,72 +398,74 @@ const ManageUsers = () => {
           </div>
           <Button
             onClick={() => openModal()}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
           >
             Добавить пользователя
           </Button>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-3 sm:p-6 rounded-lg shadow-md">
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white">
               <thead>
                 <tr>
-                  <th className="py-2 px-4 border-b">ID</th>
+                  <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">ID</th>
                   <th 
-                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    className="py-2 px-2 sm:px-4 border-b cursor-pointer hover:bg-gray-50 text-xs sm:text-sm"
                     onClick={() => requestSort('name')}
                   >
                     ФИО {getSortIndicator('name')}
                   </th>
-                  <th className="py-2 px-4 border-b">Email</th>
+                  <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Email</th>
                   <th 
-                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    className="py-2 px-2 sm:px-4 border-b cursor-pointer hover:bg-gray-50 text-xs sm:text-sm"
                     onClick={() => requestSort('roles')}
                   >
                     Роли {getSortIndicator('roles')}
                   </th>
                   <th 
-                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                    className="py-2 px-2 sm:px-4 border-b cursor-pointer hover:bg-gray-50 text-xs sm:text-sm"
                     onClick={() => requestSort('specialty')}
                   >
                     Специальность {getSortIndicator('specialty')}
                   </th>
-                  <th className="py-2 px-4 border-b">Действия</th>
+                  <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.length > 0 ? (
                   filteredUsers.map((user) => (
                     <tr key={user.userid} className="hover:bg-gray-50">
-                      <td className="py-2 px-4 border-b">{user.userid}</td>
-                      <td className="py-2 px-4 border-b">
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{user.userid}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">
                         {user.firstname} {user.middlename} {user.lastname}
                       </td>
-                      <td className="py-2 px-4 border-b">{user.email}</td>
-                      <td className="py-2 px-4 border-b">{renderRoles(user.userid)}</td>
-                      <td className="py-2 px-4 border-b">
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{user.email}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{renderRoles(user.userid)}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">
                         {getSpecialtyName(user.specialtyid)}
                       </td>
-                      <td className="py-2 px-4 border-b">
-                        <Button
-                          onClick={() => openModal(user)}
-                          className="mr-2 bg-blue-600 hover:bg-blue-700"
-                        >
-                          Редактировать
-                        </Button>
-                        <Button
-                          onClick={() => handleDelete(user.userid)}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          Удалить
-                        </Button>
+                      <td className="py-2 px-2 sm:px-4 border-b">
+                        <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                          <Button
+                            onClick={() => openModal(user)}
+                            className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
+                          >
+                            Редактировать
+                          </Button>
+                          <Button
+                            onClick={() => handleDelete(user.userid)}
+                            className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
+                          >
+                            Удалить
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="text-center py-4">
+                    <td colSpan="6" className="text-center py-4 text-xs sm:text-sm">
                       {users.length === 0 ? "Нет данных о пользователях" : "Ничего не найдено"}
                     </td>
                   </tr>
@@ -471,11 +475,11 @@ const ManageUsers = () => {
           </div>
         </div>
         <Modal isOpen={isModalOpen} onClose={closeModal}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
               {currentUser ? "Редактировать пользователя" : "Добавить пользователя"}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <Input
                 label="Имя"
                 name="firstName"
@@ -555,7 +559,7 @@ const ManageUsers = () => {
                   value: role.roleid,
                   label: role.rolename,
                 }))}
-                isMulti // Включаем множественный выбор
+                isMulti
                 placeholder="Выберите роли"
               />
               <div className="flex items-center">
@@ -568,17 +572,17 @@ const ManageUsers = () => {
                   }
                   className="mr-2"
                 />
-                <label>Активен</label>
+                <label className="text-sm sm:text-base">Активен</label>
               </div>
-              <div className="flex justify-end space-x-4">
+              <div className="flex justify-end gap-3 sm:gap-4">
                 <Button
                   type="button"
                   onClick={closeModal}
-                  className="bg-gray-600 hover:bg-gray-700"
+                  className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
                 >
                   Отмена
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                <Button type="submit" className="bg-green-600 hover:bg-green-700 text-sm sm:text-base">
                   {currentUser ? "Сохранить" : "Добавить"}
                 </Button>
               </div>

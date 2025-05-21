@@ -291,43 +291,51 @@ const ManageServices = () => {
     <div className="min-h-screen bg-gray-100">
       <Header appName="Управление медицинскими услугами" />
       
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">
+      <div className="container mx-auto p-3 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">
           Управление медицинскими услугами
         </h1>
         
         {/* Вкладки для переключения между услугами и тестами */}
-        <div className="flex border-b mb-6">
+        <div className="flex border-b mb-4 sm:mb-6 overflow-x-auto">
           <button
-            className={`px-4 py-2 font-medium ${activeTab === "services" ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 font-medium text-sm sm:text-base whitespace-nowrap ${
+              activeTab === "services" 
+                ? 'border-b-2 border-blue-500 text-blue-600' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
             onClick={() => setActiveTab("services")}
           >
             Медицинские услуги
           </button>
           <button
-            className={`px-4 py-2 font-medium ${activeTab === "labTests" ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 font-medium text-sm sm:text-base whitespace-nowrap ${
+              activeTab === "labTests" 
+                ? 'border-b-2 border-blue-500 text-blue-600' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
             onClick={() => setActiveTab("labTests")}
           >
             Лабораторные тесты
           </button>
         </div>
         
-        {loading && <Loader className="flex justify-center my-8" />}
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {loading && <Loader className="flex justify-center my-6 sm:my-8" />}
+        {error && <p className="text-red-500 text-center mb-3 sm:mb-4 text-sm sm:text-base">{error}</p>}
         
         {/* Поиск и кнопка добавления */}
-        <div className="flex justify-between mb-4">
+        <div className="flex flex-col sm:flex-row justify-between mb-4 gap-3">
           <Input
             type="text"
             placeholder={`Поиск ${activeTab === "services" ? "услуг" : "лабораторных тестов"}...`}
             value={searchTerm}
             onChange={handleSearchChange}
-            className="w-64"
+            className="w-full sm:w-48 md:w-64"
           />
           {isAdmin() && (
             <Button
               onClick={() => openModal()}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
             >
               {activeTab === "services" ? "Добавить услугу" : "Добавить тест"}
             </Button>
@@ -335,51 +343,51 @@ const ManageServices = () => {
         </div>
         
         {/* Таблица с данными */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-3 sm:p-6 rounded-lg shadow-md overflow-x-auto">
           {activeTab === "services" ? (
             <table className="min-w-full bg-white">
               <thead>
                 <tr>
                   <th 
-                    className="py-2 px-4 border-b cursor-pointer"
+                    className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer"
                     onClick={() => requestSort("name")}
                   >
                     Название <SortIndicator field="name" />
                   </th>
                   <th 
-                    className="py-2 px-4 border-b cursor-pointer"
+                    className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer"
                     onClick={() => requestSort("description")}
                   >
                     Описание <SortIndicator field="description" />
                   </th>
                   <th 
-                    className="py-2 px-4 border-b cursor-pointer"
+                    className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer"
                     onClick={() => requestSort("cost")}
                   >
                     Стоимость <SortIndicator field="cost" />
                   </th>
-                  {isAdmin() && <th className="py-2 px-4 border-b">Действия</th>}
+                  {isAdmin() && <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Действия</th>}
                 </tr>
               </thead>
               <tbody>
                 {filteredServices.length > 0 ? (
                   filteredServices.map((service) => (
                     <tr key={service.serviceid} className="hover:bg-gray-50">
-                      <td className="py-2 px-4 border-b">{service.name}</td>
-                      <td className="py-2 px-4 border-b">{service.description}</td>
-                      <td className="py-2 px-4 border-b">{service.cost}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{service.name}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{service.description}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{service.cost}</td>
                       {isAdmin() && (
-                        <td className="py-2 px-4 border-b">
-                          <div className="flex space-x-2">
+                        <td className="py-2 px-2 sm:px-4 border-b">
+                          <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                             <Button
                               onClick={() => openModal(service)}
-                              className="bg-blue-600 hover:bg-blue-700"
+                              className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
                             >
                               Редактировать
                             </Button>
                             <Button
                               onClick={() => handleDelete(service.serviceid)}
-                              className="bg-red-600 hover:bg-red-700"
+                              className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
                             >
                               Удалить
                             </Button>
@@ -390,7 +398,7 @@ const ManageServices = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={isAdmin() ? 4 : 3} className="text-center py-4">
+                    <td colSpan={isAdmin() ? 4 : 3} className="text-center py-4 text-xs sm:text-sm">
                       {searchTerm ? "Ничего не найдено" : "Нет данных об услугах"}
                     </td>
                   </tr>
@@ -402,45 +410,45 @@ const ManageServices = () => {
               <thead>
                 <tr>
                   <th 
-                    className="py-2 px-4 border-b cursor-pointer"
+                    className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer"
                     onClick={() => requestSort("name")}
                   >
                     Название <SortIndicator field="name" />
                   </th>
                   <th 
-                    className="py-2 px-4 border-b cursor-pointer"
+                    className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer"
                     onClick={() => requestSort("methodology")}
                   >
                     Методика <SortIndicator field="methodology" />
                   </th>
                   <th 
-                    className="py-2 px-4 border-b cursor-pointer"
+                    className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer"
                     onClick={() => requestSort("cost")}
                   >
                     Стоимость <SortIndicator field="cost" />
                   </th>
-                  {isAdmin() && <th className="py-2 px-4 border-b">Действия</th>}
+                  {isAdmin() && <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Действия</th>}
                 </tr>
               </thead>
               <tbody>
                 {filteredLabTests.length > 0 ? (
                   filteredLabTests.map((test) => (
                     <tr key={test.testid} className="hover:bg-gray-50">
-                      <td className="py-2 px-4 border-b">{test.name}</td>
-                      <td className="py-2 px-4 border-b">{test.methodology}</td>
-                      <td className="py-2 px-4 border-b">{test.cost} руб.</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{test.name}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{test.methodology}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{test.cost} руб.</td>
                       {isAdmin() && (
-                        <td className="py-2 px-4 border-b">
-                          <div className="flex space-x-2">
+                        <td className="py-2 px-2 sm:px-4 border-b">
+                          <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                             <Button
                               onClick={() => openModal(test)}
-                              className="bg-blue-600 hover:bg-blue-700"
+                              className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
                             >
                               Редактировать
                             </Button>
                             <Button
                               onClick={() => handleDelete(test.testid)}
-                              className="bg-red-600 hover:bg-red-700"
+                              className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
                             >
                               Удалить
                             </Button>
@@ -451,7 +459,7 @@ const ManageServices = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={isAdmin() ? 4 : 3} className="text-center py-4">
+                    <td colSpan={isAdmin() ? 4 : 3} className="text-center py-4 text-xs sm:text-sm">
                       {searchTerm ? "Ничего не найдено" : "Нет данных о лабораторных тестах"}
                     </td>
                   </tr>
@@ -464,13 +472,13 @@ const ManageServices = () => {
         {/* Модальное окно для добавления/редактирования */}
         {isAdmin() && (
           <Modal isOpen={isModalOpen} onClose={closeModal}>
-            <div className="p-6">
-              <h2 className="text-xl font-semibold mb-4">
+            <div className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
                 {currentItem 
                   ? `Редактировать ${activeTab === "services" ? "услугу" : "лабораторный тест"}` 
                   : `Создать новую ${activeTab === "services" ? "услугу" : "лабораторный тест"}`}
               </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 <Input
                   label="Название"
                   name="name"
@@ -512,15 +520,15 @@ const ManageServices = () => {
                   min="0"
                 />
                 
-                <div className="flex justify-end space-x-4">
+                <div className="flex justify-end gap-3 sm:gap-4">
                   <Button
                     type="button"
                     onClick={closeModal}
-                    className="bg-gray-600 hover:bg-gray-700"
+                    className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
                   >
                     Отмена
                   </Button>
-                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                  <Button type="submit" className="bg-green-600 hover:bg-green-700 text-sm sm:text-base">
                     {currentItem ? "Сохранить" : "Создать"}
                   </Button>
                 </div>

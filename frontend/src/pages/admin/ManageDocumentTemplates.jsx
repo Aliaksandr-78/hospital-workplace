@@ -126,59 +126,63 @@ const ManageDocumentTemplates = () => {
     <div className="min-h-screen bg-gray-100">
       <Header appName="Управление шаблонами документов" />
 
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">
+      <div className="container mx-auto p-3 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">
           Управление шаблонами документов
         </h1>
 
-        {loading && <Loader className="flex justify-center my-8" />}
-
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {loading && <Loader className="flex justify-center my-6 sm:my-8" />}
+        {error && <p className="text-red-500 text-center mb-3 sm:mb-4 text-sm sm:text-base">{error}</p>}
 
         <div className="flex justify-end mb-4">
-          <Button onClick={() => openModal()} className="bg-green-600 hover:bg-green-700">
+          <Button 
+            onClick={() => openModal()} 
+            className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
+          >
             Добавить шаблон
           </Button>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-3 sm:p-6 rounded-lg shadow-md overflow-x-auto">
           <table className="min-w-full bg-white">
             <thead>
               <tr>
-                <th className="py-2 px-4 border-b">ID</th>
-                <th className="py-2 px-4 border-b">Название</th>
-                <th className="py-2 px-4 border-b">Файл</th>
-                <th className="py-2 px-4 border-b">Действия</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">ID</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Название</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Файл</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Действия</th>
               </tr>
             </thead>
             <tbody>
               {templates.map((template) => (
                 <tr key={template.templateid} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{template.templateid}</td>
-                  <td className="py-2 px-4 border-b">{template.name}</td>
-                  <td className="py-2 px-4 border-b">
+                  <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{template.templateid}</td>
+                  <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{template.name}</td>
+                  <td className="py-2 px-2 sm:px-4 border-b">
                     {template.filename && (
                       <Button
                         onClick={() => handleDownload(template.templateid, template.filename)}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
                       >
                         Скачать {template.filename}
                       </Button>
                     )}
                   </td>
-                  <td className="py-2 px-4 border-b">
-                    <Button
-                      onClick={() => openModal(template)}
-                      className="mr-2 bg-blue-600 hover:bg-blue-700"
-                    >
-                      Редактировать
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(template.templateid)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Удалить
-                    </Button>
+                  <td className="py-2 px-2 sm:px-4 border-b">
+                    <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                      <Button
+                        onClick={() => openModal(template)}
+                        className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
+                      >
+                        Редактировать
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(template.templateid)}
+                        className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
+                      >
+                        Удалить
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -187,11 +191,11 @@ const ManageDocumentTemplates = () => {
         </div>
 
         <Modal isOpen={isModalOpen} onClose={closeModal}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
               {currentTemplate ? "Редактировать шаблон" : "Добавить шаблон"}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <Input
                 label="Название"
                 name="name"
@@ -201,25 +205,25 @@ const ManageDocumentTemplates = () => {
                 required
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700">Файл</label>
+                <label className="block text-sm sm:text-base font-medium text-gray-700">Файл</label>
                 <input
                   type="file"
                   onChange={handleFileChange}
-                  className="mt-1 block w-full"
+                  className="mt-1 block w-full text-xs sm:text-sm"
                 />
                 {currentTemplate && currentTemplate.filename && (
-                  <p className="text-sm text-gray-500 mt-2">Текущий файл: {currentTemplate.filename}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-2">Текущий файл: {currentTemplate.filename}</p>
                 )}
               </div>
-              <div className="flex justify-end space-x-4">
+              <div className="flex justify-end gap-3 sm:gap-4">
                 <Button
                   type="button"
                   onClick={closeModal}
-                  className="bg-gray-600 hover:bg-gray-700"
+                  className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
                 >
                   Отмена
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                <Button type="submit" className="bg-green-600 hover:bg-green-700 text-sm sm:text-base">
                   {currentTemplate ? "Сохранить" : "Добавить"}
                 </Button>
               </div>

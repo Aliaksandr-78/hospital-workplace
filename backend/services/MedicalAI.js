@@ -246,26 +246,44 @@ class MedicalAI {
   }
 
   async _getDecisionTreeRecs(diagnosisId, patientId) {
-    const { rows: features } = await pool.query(`
-      SELECT featurevalue, featuretype FROM patientfeatures 
-      WHERE patientid = $1 AND featuretype IN ('заболевание', 'аллергия', 'непереносимость', 'физиологическая особенность')
-    `, [patientId]);
+    try {
+      // Получаем особенности пациента
+      const { rows: features } = await pool.query(`
+        SELECT featurevalue, featuretype FROM patientfeatures 
+        WHERE patientid = $1 AND featuretype IN ('заболевание', 'аллергия', 'непереносимость', 'физиологическая особенность')
+      `, [patientId]);
 
-    const input = [
-      diagnosisId,
-      features[0] ? this._hashFeature(features[0].featurevalue + features[0].featuretype) : 0
-    ];
+      // Если нет особенностей, возвращаем пустой массив
+      if (features.length === 0) return [];
 
-    const prediction = this.decisionTree.predict([input]);
-    const med = this.medications.get(prediction[0]);
+      // Преобразуем особенности в числовой формат
+      const numericFeatures = features.map(f => 
+        this._hashFeature(f.featurevalue + f.featuretype)
+      );
 
-    return med ? [{
-      MedicationID: med.medicationid,
-      name: med.name,
-      confidence: 0.8,
-      source: 'decision_tree',
-      weight: 0.6
-    }] : [];
+      // Создаем входные данные для предсказания
+      const input = [
+        Number(diagnosisId), // Убедимся, что diagnosisId - число
+        numericFeatures[0] || 0 // Берем первую особенность или 0
+      ];
+
+      console.log('Input for decision tree:', input); // Логируем входные данные
+
+      // Делаем предсказание
+      const prediction = this.decisionTree.predict([input]);
+      const med = this.medications.get(prediction[0]);
+
+      return med ? [{
+        MedicationID: med.medicationid,
+        name: med.name,
+        confidence: 0.8,
+        source: 'decision_tree',
+        weight: 0.6
+      }] : [];
+    } catch (err) {
+      console.error('Error in _getDecisionTreeRecs:', err);
+      return []; // В случае ошибки возвращаем пустой массив
+    }
   }
 
   async _filterRecommendations(recommendations, patientId) {
@@ -375,9 +393,15 @@ class MedicalAI {
   }
 
   _hashFeature(feature) {
-    return feature.split('').reduce((hash, char) => {
-      return (hash << 5) - hash + char.charCodeAt(0);
-    }, 0);
+    if (!feature) return 0;
+    
+    let hash = 0;
+    for (let i = 0; i < feature.length; i++) {
+      const char = feature.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; 
+    }
+    return Math.abs(hash);
   }
 
   _findMedicationId(name) {

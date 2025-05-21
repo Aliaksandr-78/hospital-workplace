@@ -95,56 +95,54 @@ const ManageEventTypes = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Шапка с кнопкой выхода */}
       <Header appName="Управление типами событий" />
 
-      {/* Основное содержимое */}
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">
+      <div className="container mx-auto p-3 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">
           Управление типами событий
         </h1>
 
-        {/* Индикатор загрузки */}
-        {loading && <Loader className="flex justify-center my-8" />}
+        {loading && <Loader className="flex justify-center my-6 sm:my-8" />}
+        {error && <p className="text-red-500 text-center mb-3 sm:mb-4 text-sm sm:text-base">{error}</p>}
 
-        {/* Сообщение об ошибке */}
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-
-        {/* Кнопка добавления нового типа события */}
         <div className="flex justify-end mb-4">
-          <Button onClick={() => openModal()} className="bg-green-600 hover:bg-green-700">
+          <Button 
+            onClick={() => openModal()} 
+            className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
+          >
             Добавить тип события
           </Button>
         </div>
 
-        {/* Таблица типов событий */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-3 sm:p-6 rounded-lg shadow-md overflow-x-auto">
           <table className="min-w-full bg-white">
             <thead>
               <tr>
-                <th className="py-2 px-4 border-b">ID</th>
-                <th className="py-2 px-4 border-b">Название типа события</th>
-                <th className="py-2 px-4 border-b">Действия</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">ID</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Название типа события</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Действия</th>
               </tr>
             </thead>
             <tbody>
               {eventTypes.map((eventType) => (
                 <tr key={eventType.eventtypeid} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{eventType.eventtypeid}</td>
-                  <td className="py-2 px-4 border-b">{eventType.eventname}</td>
-                  <td className="py-2 px-4 border-b">
-                    <Button
-                      onClick={() => openModal(eventType)}
-                      className="mr-2 bg-blue-600 hover:bg-blue-700"
-                    >
-                      Редактировать
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(eventType.eventtypeid)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Удалить
-                    </Button>
+                  <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{eventType.eventtypeid}</td>
+                  <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{eventType.eventname}</td>
+                  <td className="py-2 px-2 sm:px-4 border-b">
+                    <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                      <Button
+                        onClick={() => openModal(eventType)}
+                        className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
+                      >
+                        Редактировать
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(eventType.eventtypeid)}
+                        className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
+                      >
+                        Удалить
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -152,13 +150,12 @@ const ManageEventTypes = () => {
           </table>
         </div>
 
-        {/* Модальное окно для добавления/редактирования типа события */}
         <Modal isOpen={isModalOpen} onClose={closeModal}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
               {currentEventType ? "Редактировать тип события" : "Добавить тип события"}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <Input
                 label="Название типа события"
                 name="EventName"
@@ -167,15 +164,15 @@ const ManageEventTypes = () => {
                 placeholder="Введите название типа события"
                 required
               />
-              <div className="flex justify-end space-x-4">
+              <div className="flex justify-end gap-3 sm:gap-4">
                 <Button
                   type="button"
                   onClick={closeModal}
-                  className="bg-gray-600 hover:bg-gray-700"
+                  className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
                 >
                   Отмена
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                <Button type="submit" className="bg-green-600 hover:bg-green-700 text-sm sm:text-base">
                   {currentEventType ? "Сохранить" : "Добавить"}
                 </Button>
               </div>

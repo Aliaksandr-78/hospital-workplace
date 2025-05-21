@@ -1,37 +1,63 @@
 @import "./tailwind.css";
 
-/* ========== Глобальные стили проекта ========== */
 
-/* Убираем стандартные отступы и границы у всех элементов */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Настройка шрифтов */
 html {
   font-family: 'Inter', sans-serif;
   scroll-behavior: smooth;
+  font-size: 16px;
 }
 
-/* Базовые стили для body */
 body {
-  background-color: #f9fafb; /* Светлый фон */
-  color: #1f2937; /* Темный цвет текста */
+  background-color: #f9fafb;
+  color: #1f2937;
   line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Настройка контейнера для центрирования контента */
 .container {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 1rem; /* 16px на мобильных */
 }
 
-/* Скрытие скроллбара (опционально) */
+@media (min-width: 640px) {
+  .container {
+    padding: 0 1.5rem; /* 24px на планшетах */
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding: 0 2rem; /* 32px на десктопах */
+  }
+}
+
+/* Адаптивные шрифты */
+h1 {
+  font-size: 1.75rem; /* 28px */
+  line-height: 2.25rem; /* 36px */
+}
+
+@media (min-width: 768px) {
+  h1 {
+    font-size: 2.25rem; /* 36px */
+    line-height: 2.5rem; /* 40px */
+  }
+}
+
+/* Адаптивные скроллбары */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -43,7 +69,7 @@ body {
   background: #f3f4f6;
 }
 
-/* Глобальные классы для анимаций */
+/* Адаптивные анимации */
 .fade-in {
   animation: fadeIn 0.3s ease-in-out;
 }
@@ -51,8 +77,130 @@ body {
 @keyframes fadeIn {
   from {
     opacity: 0;
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Адаптивные медиа-элементы */
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Адаптивные таблицы */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+@media (max-width: 767px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* Адаптивные формы */
+input, textarea, select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+@media (min-width: 768px) {
+  input, textarea, select {
+    padding: 0.625rem 1rem;
+  }
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Адаптивные кнопки */
+button {
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+}
+
+@media (min-width: 768px) {
+  button {
+    font-size: 1rem;
+    padding: 0.625rem 1.25rem;
+  }
+}
+
+/* Адаптивные отступы */
+.p-section {
+  padding: 2rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .p-section {
+    padding: 3rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .p-section {
+    padding: 4rem 2rem;
+  }
+}
+
+/* Хелпер-классы для адаптивности */
+.mobile-only {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none;
+  }
+}
+
+.desktop-only {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .desktop-only {
+    display: block;
+  }
+}
+
+/* Адаптивные grid-сетки */
+.grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .grid-responsive {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid-responsive {
+    grid-template-columns: repeat(4, 1fr);
   }
 }

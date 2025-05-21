@@ -1,17 +1,5 @@
 import PropTypes from "prop-types";
 
-/**
- * @param {Object} props - Свойства компонента.
- * @param {string} props.label - Метка для поля выбора.
- * @param {string} props.name - Имя поля выбора.
- * @param {Array} props.options - Массив опций для выбора.
- * @param {Array|string|number} props.value - Выбранное значение (может быть массивом для множественного выбора).
- * @param {Function} props.onChange - Функция обработки изменения значения.
- * @param {string} props.className - Дополнительные классы для контейнера.
- * @param {string} props.error - Сообщение об ошибке.
- * @param {boolean} props.isMulti - Флаг множественного выбора.
- * @returns {JSX.Element} - JSX элемент поля выбора.
- */
 const Select = ({
   label,
   name,
@@ -22,33 +10,30 @@ const Select = ({
   error = "",
   isMulti = false,
 }) => {
-  // Обработчик изменения значения
   const handleChange = (e) => {
     if (isMulti) {
-      // Для множественного выбора получаем массив выбранных значений
       const selectedOptions = Array.from(e.target.selectedOptions).map(
         (option) => option.value
       );
       onChange(selectedOptions);
     } else {
-      // Для одиночного выбора получаем одно значение
       onChange(e.target.value);
     }
   };
 
   return (
     <div className={`flex flex-col ${className}`}>
-      {label && <label className="mb-1 text-sm font-medium text-gray-700">{label}</label>}
+      {label && <label className="mb-1 text-sm sm:text-base font-medium text-gray-700">{label}</label>}
       <select
         name={name}
         value={value}
         onChange={handleChange}
-        multiple={isMulti} // Включаем множественный выбор
-        className={`px-3 py-2 border ${
+        multiple={isMulti}
+        className={`px-2 py-1.5 sm:px-3 sm:py-2 border ${
           error ? "border-red-500" : "border-gray-300"
         } rounded-lg focus:outline-none focus:ring-2 ${
           error ? "focus:ring-red-500" : "focus:ring-blue-500"
-        }`}
+        } text-sm sm:text-base`}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -56,7 +41,7 @@ const Select = ({
           </option>
         ))}
       </select>
-      {error && <span className="mt-1 text-sm text-red-500">{error}</span>}
+      {error && <span className="mt-1 text-xs sm:text-sm text-red-500">{error}</span>}
     </div>
   );
 };

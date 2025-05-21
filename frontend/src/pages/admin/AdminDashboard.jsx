@@ -54,48 +54,46 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-gray-100">
       <Header appName="Панель администратора" />
 
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">Панель администратора</h1>
+      <div className="container mx-auto p-3 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">
+          Панель администратора
+        </h1>
 
-        {loading && <Loader className="flex justify-center my-8" />}
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {loading && <Loader className="flex justify-center my-6 sm:my-8" />}
+        {error && <p className="text-red-500 text-center mb-3 sm:mb-4 text-sm sm:text-base">{error}</p>}
 
-        {/* Карточки с данными */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Карточка с количеством пользователей */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-lg font-semibold mb-2">Пользователи</h2>
-            <p className="text-3xl font-bold">{users.length}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+            <h2 className="text-base sm:text-lg font-semibold mb-2">Пользователи</h2>
+            <p className="text-2xl sm:text-3xl font-bold">{users.length}</p>
             <Button
               onClick={() => navigate("/manage-users")}
               color="primary"
-              className="mt-4"
+              className="mt-3 sm:mt-4 text-sm sm:text-base"
             >
               Перейти к пользователям
             </Button>
           </div>
 
-          {/* Карточка с количеством пациентов */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-lg font-semibold mb-2">Пациенты</h2>
-            <p className="text-3xl font-bold">{patients.length}</p>
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+            <h2 className="text-base sm:text-lg font-semibold mb-2">Пациенты</h2>
+            <p className="text-2xl sm:text-3xl font-bold">{patients.length}</p>
             <Button
               onClick={() => navigate("/patients")}
               color="primary"
-              className="mt-4"
+              className="mt-3 sm:mt-4 text-sm sm:text-base"
             >
               Перейти к пациентам
             </Button>
           </div>
 
-          {/* Карточка с количеством услуг */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-lg font-semibold mb-2">Услуги</h2>
-            <p className="text-3xl font-bold">{services.length}</p>
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+            <h2 className="text-base sm:text-lg font-semibold mb-2">Услуги</h2>
+            <p className="text-2xl sm:text-3xl font-bold">{services.length}</p>
             <Button
               onClick={() => navigate("/manage-services")}
               color="primary"
-              className="mt-4"
+              className="mt-3 sm:mt-4 text-sm sm:text-base"
             >
               Перейти к услугам
             </Button>
@@ -103,7 +101,7 @@ const AdminDashboard = () => {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default AdminDashboard

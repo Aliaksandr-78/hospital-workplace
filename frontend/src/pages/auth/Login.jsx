@@ -50,12 +50,12 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Вход в систему</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+      <div className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md w-full max-w-md">
+        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center">Вход в систему</h1>
 
         {/* Форма входа */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           {/* Поле для email */}
           <Input
             label="Email"
@@ -77,7 +77,7 @@ const Login = () => {
           />
 
           {/* Сообщение об ошибке */}
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-red-500 text-xs sm:text-sm">{error}</p>}
 
           {/* Кнопка входа */}
           <Button type="submit" className="w-full" disabled={loading}>

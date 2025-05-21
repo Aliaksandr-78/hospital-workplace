@@ -81,37 +81,36 @@ const Main = () => {
       <Header appName="Медицинская система" />
 
       {/* Основное содержимое */}
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">
+      <div className="container mx-auto p-3 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">
           Добро пожаловать, {user?.firstname} {user?.middlename} {user?.lastname}!
         </h1>
 
         {/* Индикатор загрузки */}
-        {loading && <Loader className="flex justify-center my-8" />}
+        {loading && <Loader className="flex justify-center my-6 sm:my-8" />}
 
         {/* Сообщение об ошибке */}
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {error && <p className="text-red-500 text-center mb-3 sm:mb-4">{error}</p>}
 
         {/* Информация о пользователе */}
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-semibold mb-4">Ваш профиль</h2>
-          <p>
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Ваш профиль</h2>
+          <p className="text-sm sm:text-base">
             <strong>Email:</strong> {user?.email}
           </p>
-          <p>
+          <p className="text-sm sm:text-base">
             <strong>Роли:</strong> {getUserRoleNames()}
           </p>
-          <p>
+          <p className="text-sm sm:text-base">
             <strong>Специальность:</strong> {getSpecialtyName(user?.specialtyid)}
           </p>
         </div>
 
         {/* Быстрые действия */}
         <div className="flex justify-center">
-          {/* Кнопка перехода в Dashboard */}
           <Button
             onClick={navigateToDashboard}
-            className="w-full md:w-auto p-4 bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full md:w-auto px-3 py-2 sm:px-4 sm:py-3 md:p-4 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base"
           >
             Перейти в Dashboard
           </Button>
@@ -119,9 +118,9 @@ const Main = () => {
 
         {/* Дополнительная информация в зависимости от роли */}
         {getUserRoleNames().includes("Admin") && (
-          <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Администратор</h2>
-            <p>
+          <div className="mt-4 sm:mt-6 bg-white p-4 sm:p-6 rounded-lg shadow-md">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Администратор</h2>
+            <p className="text-sm sm:text-base">
               У вас есть доступ к управлению пользователями, ролями и другими
               системными настройками.
             </p>
@@ -129,9 +128,9 @@ const Main = () => {
         )}
 
         {getUserRoleNames().includes("Врач") && (
-          <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Врач</h2>
-            <p>
+          <div className="mt-4 sm:mt-6 bg-white p-4 sm:p-6 rounded-lg shadow-md">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Врач</h2>
+            <p className="text-sm sm:text-base">
               Вы можете управлять приемами, назначать лечение и просматривать
               медицинские карты пациентов.
             </p>
@@ -139,9 +138,9 @@ const Main = () => {
         )}
 
         {getUserRoleNames().includes("Медсестра") && (
-          <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Медсестра</h2>
-            <p>
+          <div className="mt-4 sm:mt-6 bg-white p-4 sm:p-6 rounded-lg shadow-md">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Медсестра</h2>
+            <p className="text-sm sm:text-base">
               Вы можете управлять расписанием, записывать пациентов на прием и
               помогать врачам.
             </p>

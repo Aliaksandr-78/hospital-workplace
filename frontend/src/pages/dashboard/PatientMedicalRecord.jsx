@@ -70,6 +70,14 @@ const PatientMedicalRecord = () => {
   const [isPrescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
   const [isRecommendationsModalOpen, setRecommendationsModalOpen] = useState(false);
 
+  // Состояния для управления развертыванием и поиском
+  const [expandedFeatures, setExpandedFeatures] = useState(false);
+  const [expandedEntries, setExpandedEntries] = useState(false);
+  const [expandedLabTests, setExpandedLabTests] = useState(false);
+  const [featureSearchDate, setFeatureSearchDate] = useState("");
+  const [entrySearchDate, setEntrySearchDate] = useState("");
+  const [labTestSearchDate, setLabTestSearchDate] = useState("");
+
   // Проверка ролей пользователя
   const isDoctor = useCallback(() => {
     return userRoles.some(userRole => {
@@ -94,6 +102,15 @@ const PatientMedicalRecord = () => {
   const isLabTestAuthor = useCallback((labTest) => {
     return labTest && user && (labTest.orderedby === user.userid || labTest.performedby === user.userid);
   }, [user]);
+
+  // Функции для фильтрации по дате
+  const filterByDate = (items, dateField, searchDate) => {
+    if (!searchDate) return items;
+    return items.filter(item => {
+      const itemDate = new Date(item[dateField]).toISOString().split('T')[0];
+      return itemDate === searchDate;
+    });
+  };
 
   // Загрузка ролей пользователя
   useEffect(() => {
@@ -746,6 +763,14 @@ const PatientMedicalRecord = () => {
     </svg>
   );
 
+  const filteredFeatures = filterByDate(patientFeatures, 'dateidentified', featureSearchDate);
+  const filteredEntries = filterByDate(entries, 'entrydate', entrySearchDate);
+  const filteredLabTests = filterByDate(labTests, 'orderdate', labTestSearchDate);
+
+  const displayedFeatures = expandedFeatures ? filteredFeatures : filteredFeatures.slice(0, 2);
+  const displayedEntries = expandedEntries ? filteredEntries : filteredEntries.slice(0, 2);
+  const displayedLabTests = expandedLabTests ? filteredLabTests : filteredLabTests.slice(0, 2);
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Header appName={`Медицинская карта пациента: ${patientFullName}`} />
@@ -753,26 +778,55 @@ const PatientMedicalRecord = () => {
       <div className="container mx-auto p-4 flex">
         {/* Левая панель с деревьями */}
         <div className="w-1/3 pr-4">
+          {/* Дерево особенностей пациента */}
           <div className="bg-white p-4 rounded-lg shadow-md mb-4">
-            <h2 className="text-xl font-semibold mb-2">Особенности пациента</h2>
-            <div className="max-h-60 overflow-y-auto mb-2">
-              {patientFeatures.map(feature => (
-                <div
-                  key={feature.featureid}
-                  className={`p-2 mb-1 cursor-pointer rounded ${selectedFeature?.featureid === feature.featureid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-                  onClick={() => setSelectedFeature(feature)}
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-semibold">Особенности пациента</h2>
+              {filteredFeatures.length > 2 && (
+                <button
+                  onClick={() => setExpandedFeatures(!expandedFeatures)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
                 >
-                  <div className="flex justify-between">
-                    <span className={`${!feature.isactive ? 'line-through text-gray-500' : ''}`}>
-                      {feature.featuretype}: {feature.featurevalue}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {new Date(feature.dateidentified).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                  {expandedFeatures ? 'Свернуть' : 'Развернуть'}
+                </button>
+              )}
             </div>
+            
+            <div className="mb-2">
+              <Input
+                type="date"
+                value={featureSearchDate}
+                onChange={(e) => setFeatureSearchDate(e.target.value)}
+                placeholder="Поиск по дате"
+                className="w-full text-sm"
+              />
+            </div>
+            
+            <div className="max-h-60 overflow-y-auto mb-2">
+              {displayedFeatures.length > 0 ? (
+                displayedFeatures.map(feature => (
+                  <div
+                    key={feature.featureid}
+                    className={`p-2 mb-1 cursor-pointer rounded ${selectedFeature?.featureid === feature.featureid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+                    onClick={() => setSelectedFeature(feature)}
+                  >
+                    <div className="flex justify-between">
+                      <span className={`${!feature.isactive ? 'line-through text-gray-500' : ''}`}>
+                        {feature.featuretype}: {feature.featurevalue}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {new Date(feature.dateidentified).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-2 text-gray-500 text-sm">
+                  {filteredFeatures.length === 0 ? 'Нет результатов' : 'Используйте поиск'}
+                </div>
+              )}
+            </div>
+            
             {isDoctor() && (
               <Button
                 onClick={() => openFeatureModal()}
@@ -783,26 +837,55 @@ const PatientMedicalRecord = () => {
             )}
           </div>
 
+          {/* Дерево записей в карте */}
           <div className="bg-white p-4 rounded-lg shadow-md mb-4">
-            <h2 className="text-xl font-semibold mb-2">Записи в карте</h2>
-            <div className="max-h-60 overflow-y-auto mb-2">
-              {entries
-                .sort((a, b) => new Date(b.entrydate) - new Date(a.entrydate))
-                .map(entry => (
-                  <div
-                    key={entry.entryid}
-                    className={`p-2 mb-1 cursor-pointer rounded ${selectedEntry?.entryid === entry.entryid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-                    onClick={() => handleEntrySelect(entry)}
-                  >
-                    <div className="flex justify-between">
-                      <span>{new Date(entry.entrydate).toLocaleDateString()}</span>
-                      <span className="text-sm text-gray-500">
-                        {entry.doctorspecialty || "Неизвестно"}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-semibold">Записи в карте</h2>
+              {filteredEntries.length > 2 && (
+                <button
+                  onClick={() => setExpandedEntries(!expandedEntries)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  {expandedEntries ? 'Свернуть' : 'Развернуть'}
+                </button>
+              )}
             </div>
+            
+            <div className="mb-2">
+              <Input
+                type="date"
+                value={entrySearchDate}
+                onChange={(e) => setEntrySearchDate(e.target.value)}
+                placeholder="Поиск по дате"
+                className="w-full text-sm"
+              />
+            </div>
+            
+            <div className="max-h-60 overflow-y-auto mb-2">
+              {displayedEntries.length > 0 ? (
+                displayedEntries
+                  .sort((a, b) => new Date(b.entrydate) - new Date(a.entrydate))
+                  .map(entry => (
+                    <div
+                      key={entry.entryid}
+                      className={`p-2 mb-1 cursor-pointer rounded ${selectedEntry?.entryid === entry.entryid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+                      onClick={() => handleEntrySelect(entry)}
+                    >
+                      <div className="flex justify-between">
+                        <span>{new Date(entry.entrydate).toLocaleDateString()}</span>
+                        <span className="text-sm text-gray-500">
+                          {entry.doctorspecialty || "Неизвестно"}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                <div className="text-center py-2 text-gray-500 text-sm">
+                  {filteredEntries.length === 0 ? 'Нет результатов' : 'Используйте поиск'}
+                </div>
+              )}
+            </div>
+            
             {isDoctor() && (
               <Button
                 onClick={() => openEntryModal()}
@@ -813,30 +896,59 @@ const PatientMedicalRecord = () => {
             )}
           </div>
 
+          {/* Дерево лабораторных тестов */}
           <div className="bg-white p-4 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-2">Лабораторные тесты</h2>
-            <div className="max-h-60 overflow-y-auto mb-2">
-              {labTests
-                .sort((a) => (a.resultdate ? 1 : -1))
-                .map(test => (
-                  <div
-                    key={test.resultid}
-                    className={`p-2 mb-1 cursor-pointer rounded ${selectedLabTest?.resultid === test.resultid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-                    onClick={() => setSelectedLabTest(test)}
-                  >
-                    <div className="flex justify-between">
-                      <span className={!test.resultdate ? 'font-semibold' : ''}>
-                        {test.resultdate
-                          ? new Date(test.resultdate).toLocaleDateString()
-                          : new Date(test.orderdate).toLocaleDateString()}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {test.testname || getTestName(test.testid)} ({test.status})
-                      </span>
-                    </div>
-                  </div>
-                ))}
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-semibold">Лабораторные тесты</h2>
+              {filteredLabTests.length > 2 && (
+                <button
+                  onClick={() => setExpandedLabTests(!expandedLabTests)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  {expandedLabTests ? 'Свернуть' : 'Развернуть'}
+                </button>
+              )}
             </div>
+            
+            <div className="mb-2">
+              <Input
+                type="date"
+                value={labTestSearchDate}
+                onChange={(e) => setLabTestSearchDate(e.target.value)}
+                placeholder="Поиск по дате"
+                className="w-full text-sm"
+              />
+            </div>
+            
+            <div className="max-h-60 overflow-y-auto mb-2">
+              {displayedLabTests.length > 0 ? (
+                displayedLabTests
+                  .sort((a) => (a.resultdate ? 1 : -1))
+                  .map(test => (
+                    <div
+                      key={test.resultid}
+                      className={`p-2 mb-1 cursor-pointer rounded ${selectedLabTest?.resultid === test.resultid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+                      onClick={() => setSelectedLabTest(test)}
+                    >
+                      <div className="flex justify-between">
+                        <span className={!test.resultdate ? 'font-semibold' : ''}>
+                          {test.resultdate
+                            ? new Date(test.resultdate).toLocaleDateString()
+                            : new Date(test.orderdate).toLocaleDateString()}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          {test.testname || getTestName(test.testid)} ({test.status})
+                        </span>
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                <div className="text-center py-2 text-gray-500 text-sm">
+                  {filteredLabTests.length === 0 ? 'Нет результатов' : 'Используйте поиск'}
+                </div>
+              )}
+            </div>
+            
             {(isDoctor() || isNurse()) && (
               <Button
                 onClick={() => openLabTestModal()}

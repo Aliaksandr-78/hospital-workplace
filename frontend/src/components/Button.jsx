@@ -20,7 +20,7 @@ const Button = ({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`px-4 py-2 text-white font-semibold rounded-lg transition-all ${
+      className={`px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-white font-semibold rounded-lg transition-all ${
         colorClasses[color] || colorClasses.primary
       } ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
     >
