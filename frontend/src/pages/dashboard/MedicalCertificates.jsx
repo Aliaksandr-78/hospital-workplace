@@ -355,33 +355,35 @@ const MedicalCertificates = () => {
     <div className="min-h-screen bg-gray-100">
       <Header appName="Управление медицинскими справками" />
 
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">Управление медицинскими справками</h1>
+      <div className="container mx-auto p-3 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">Управление медицинскими справками</h1>
 
         {loading ? (
-          <Loader className="flex justify-center my-8" />
+          <Loader className="flex justify-center my-6 sm:my-8" />
         ) : (
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex justify-between mb-4 flex-wrap gap-4">
-              <div className="flex space-x-4 flex-wrap">
+          <div className="bg-white p-3 sm:p-6 rounded-lg shadow-md">
+            <div className="flex flex-col sm:flex-row justify-between mb-4 gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
                 <Input
                   type="text"
                   placeholder="Поиск по пациенту..."
                   value={searchTerm}
                   onChange={handleSearchChange}
-                  className="w-64"
+                  className="w-full sm:w-48 md:w-64"
                 />
                 <Input
                   type="date"
                   placeholder="Фильтр по дате..."
                   value={dateFilter}
                   onChange={handleDateFilterChange}
+                  className="w-full sm:w-48"
                 />
                 <Input
                   type="text"
                   placeholder="Фильтр по типу..."
                   value={typeFilter}
                   onChange={handleTypeFilterChange}
+                  className="w-full sm:w-48"
                 />
                 {(searchTerm || dateFilter || typeFilter) && (
                   <Button 
@@ -390,14 +392,14 @@ const MedicalCertificates = () => {
                       setDateFilter("")
                       setTypeFilter("")
                     }} 
-                    className="bg-gray-600 hover:bg-gray-700"
+                    className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
                   >
                     Сбросить фильтры
                   </Button>
                 )}
               </div>
               {isDoctor() && (
-                <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+                <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700 text-sm sm:text-base">
                   Создать новую справку
                 </Button>
               )}
@@ -408,62 +410,62 @@ const MedicalCertificates = () => {
                 <thead>
                   <tr>
                     <th 
-                      className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                      className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer hover:bg-gray-50"
                       onClick={() => requestSort('patient')}
                     >
                       Пациент {getSortIndicator('patient')}
                     </th>
-                    <th className="py-2 px-4 border-b">Выдано</th>
+                    <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Выдано</th>
                     <th 
-                      className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                      className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer hover:bg-gray-50"
                       onClick={() => requestSort('issueddate')}
                     >
                       Дата выдачи {getSortIndicator('issueddate')}
                     </th>
                     <th 
-                      className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                      className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer hover:bg-gray-50"
                       onClick={() => requestSort('type')}
                     >
                       Тип справки {getSortIndicator('type')}
                     </th>
-                    <th className="py-2 px-4 border-b">Детали</th>
-                    {isDoctor() && <th className="py-2 px-4 border-b">Действия</th>}
+                    <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Детали</th>
+                    {isDoctor() && <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Действия</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredCertificates.length > 0 ? (
                     filteredCertificates.map((certificate) => (
                       <tr key={certificate.certificateid} className="hover:bg-gray-50">
-                        <td className="py-2 px-4 border-b">
+                        <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">
                           {patients.find((p) => p.patientid === certificate.patientid)?.lastname}{" "}
                           {patients.find((p) => p.patientid === certificate.patientid)?.firstname}{" "}
                           {patients.find((p) => p.patientid === certificate.patientid)?.middlename}
                         </td>
-                        <td className="py-2 px-4 border-b">
-                        {getUserFullName(certificate.issuedby)}
+                        <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">
+                          {getUserFullName(certificate.issuedby)}
                         </td>
-                        <td className="py-2 px-4 border-b">{new Date(certificate.issueddate).toLocaleDateString()}</td>
-                        <td className="py-2 px-4 border-b">{certificate.certificatetype}</td>
-                        <td className="py-2 px-4 border-b">{certificate.details}</td>
+                        <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{new Date(certificate.issueddate).toLocaleDateString()}</td>
+                        <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{certificate.certificatetype}</td>
+                        <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{certificate.details}</td>
                         {isDoctor() && (
-                          <td className="py-2 px-4 border-b whitespace-nowrap">
+                          <td className="py-2 px-2 sm:px-4 border-b">
                             {certificate.issuedby === user.userid ? (
-                              <div className="flex space-x-2">
+                              <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                                 <Button 
                                   onClick={() => handleEdit(certificate.certificateid)} 
-                                  className="bg-blue-600 hover:bg-blue-700"
+                                  className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
                                 >
                                   Редактировать
                                 </Button>
                                 <Button 
                                   onClick={() => handleDelete(certificate.certificateid)} 
-                                  className="bg-red-600 hover:bg-red-700"
+                                  className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
                                 >
                                   Удалить
                                 </Button>
                               </div>
                             ) : (
-                              <span className="text-gray-500">Только для автора</span>
+                              <span className="text-gray-500 text-xs sm:text-sm">Только для автора</span>
                             )}
                           </td>
                         )}
@@ -471,7 +473,7 @@ const MedicalCertificates = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={isDoctor() ? 6 : 5} className="py-4 text-center text-gray-500">
+                      <td colSpan={isDoctor() ? 6 : 5} className="py-4 text-center text-xs sm:text-sm text-gray-500">
                         {medicalCertificates.length === 0 ? "Нет данных о справках" : "Ничего не найдено"}
                       </td>
                     </tr>
@@ -484,13 +486,13 @@ const MedicalCertificates = () => {
 
         {isDoctor() && (
           <Modal isOpen={isModalOpen} onClose={handleCancel}>
-            <div className="p-6">
-              <h2 className="text-xl font-semibold mb-4">
+            <div className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
                 {currentCertificate ? "Редактировать справку" : "Создать новую справку"}
               </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Пациент *</label>
+                  <label className="block text-sm sm:text-base font-medium text-gray-700">Пациент *</label>
                   <Input
                     type="text"
                     placeholder="Поиск пациента..."
@@ -499,11 +501,11 @@ const MedicalCertificates = () => {
                     className="w-full"
                   />
                   {formData.patientID && (
-                    <div className="p-2 bg-gray-100 rounded">
+                    <div className="p-2 bg-gray-100 rounded text-sm sm:text-base">
                       Выбран: {getSelectedPatientName()}
                     </div>
                   )}
-                  <div className="max-h-60 overflow-y-auto border rounded">
+                  <div className="max-h-60 overflow-y-auto border rounded text-sm sm:text-base">
                     {filteredPatients.map(patient => (
                       <div 
                         key={patient.patientid}
@@ -539,17 +541,17 @@ const MedicalCertificates = () => {
                   onChange={handleInputChange}
                   type="textarea"
                 />
-                <div className="flex justify-end space-x-4">
+                <div className="flex justify-end gap-3 sm:gap-4">
                   <Button 
                     type="button" 
                     onClick={handleCancel} 
-                    className="bg-gray-600 hover:bg-gray-700"
+                    className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
                   >
                     Отмена
                   </Button>
                   <Button 
                     type="submit" 
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
                   >
                     {currentCertificate ? "Сохранить" : "Создать"}
                   </Button>

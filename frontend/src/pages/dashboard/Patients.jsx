@@ -220,13 +220,14 @@ const Patients = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       <Header appName="Управление пациентами" />
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">
+      <div className="container mx-auto p-3 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">
           Управление пациентами
         </h1>
-        {loading && <Loader className="flex justify-center my-8" />}
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-        <div className="flex flex-col md:flex-row justify-between mb-4 gap-4">
+        {loading && <Loader className="flex justify-center my-6 sm:my-8" />}
+        {error && <p className="text-red-500 text-center mb-3 sm:mb-4 text-sm sm:text-base">{error}</p>}
+        
+        <div className="flex flex-col sm:flex-row justify-between mb-4 gap-3">
           <Input
             type="text"
             placeholder="Поиск пациентов..."
@@ -237,25 +238,26 @@ const Patients = () => {
           {(isAdmin() || isNurse()) && (
             <Button
               onClick={() => openModal()}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
             >
               Создать нового пациента
             </Button>
           )}
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        
+        <div className="bg-white p-3 sm:p-6 rounded-lg shadow-md overflow-x-auto">
           <table className="min-w-full bg-white">
             <thead>
               <tr>
-                <th className="py-2 px-4 border-b">Фамилия</th>
-                <th className="py-2 px-4 border-b">Имя</th>
-                <th className="py-2 px-4 border-b">Отчество</th>
-                <th className="py-2 px-4 border-b">Дата рождения</th>
-                <th className="py-2 px-4 border-b">Пол</th>
-                <th className="py-2 px-4 border-b">Телефон</th>
-                <th className="py-2 px-4 border-b">Email</th>
-                <th className="py-2 px-4 border-b">Адрес</th>
-                {!isDoctor() &&<th className="py-2 px-4 border-b">Действия</th>}
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Фамилия</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Имя</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Отчество</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Дата рождения</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Пол</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Телефон</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Email</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Адрес</th>
+                {!isDoctor() && <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Действия</th>}
               </tr>
             </thead>
             <tbody>
@@ -264,27 +266,27 @@ const Patients = () => {
                   const formattedDate = new Date(patient.dateofbirth).toLocaleDateString();
                   return (
                     <tr key={patient.patientid} className="hover:bg-gray-50">
-                      <td className="py-2 px-4 border-b">{patient.lastname}</td>
-                      <td className="py-2 px-4 border-b">{patient.firstname}</td>
-                      <td className="py-2 px-4 border-b">{patient.middlename}</td>
-                      <td className="py-2 px-4 border-b">{formattedDate}</td>
-                      <td className="py-2 px-4 border-b">{patient.gender}</td>
-                      <td className="py-2 px-4 border-b">{patient.phonenumber}</td>
-                      <td className="py-2 px-4 border-b">{patient.email}</td>
-                      <td className="py-2 px-4 border-b">{patient.address}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{patient.lastname}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{patient.firstname}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{patient.middlename}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{formattedDate}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{patient.gender}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{patient.phonenumber}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{patient.email}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{patient.address}</td>
                       {!isDoctor() && (
-                        <td className="py-2 px-4 border-b">
-                          <div className="flex space-x-2">
+                        <td className="py-2 px-2 sm:px-4 border-b">
+                          <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                             <Button
                               onClick={() => openModal(patient)}
-                              className="bg-blue-600 hover:bg-blue-700"
+                              className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
                             >
                               Редактировать
                             </Button>
                             {isAdmin() && (
                               <Button
                                 onClick={() => handleDelete(patient.patientid)}
-                                className="bg-red-600 hover:bg-red-700"
+                                className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
                               >
                                 Удалить
                               </Button>
@@ -297,7 +299,7 @@ const Patients = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="9" className="text-center py-4">
+                  <td colSpan={!isDoctor() ? 9 : 8} className="text-center py-4 text-xs sm:text-sm">
                     {searchTerm.trim() === ""
                       ? "Нет данных о пациентах."
                       : "Пациенты не найдены."}
@@ -307,13 +309,14 @@ const Patients = () => {
             </tbody>
           </table>
         </div>
+        
         {(isAdmin() || isNurse()) && (
           <Modal isOpen={isModalOpen} onClose={closeModal}>
-            <div className="p-6">
-              <h2 className="text-xl font-semibold mb-4">
+            <div className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
                 {currentPatient ? "Редактировать пациента" : "Создать нового пациента"}
               </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 <Input
                   label="Фамилия"
                   name="lastName"
@@ -378,15 +381,15 @@ const Patients = () => {
                   onChange={handleInputChange}
                   placeholder="Введите адрес"
                 />
-                <div className="flex justify-end space-x-4">
+                <div className="flex justify-end gap-3 sm:gap-4">
                   <Button
                     type="button"
                     onClick={closeModal}
-                    className="bg-gray-600 hover:bg-gray-700"
+                    className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
                   >
                     Отмена
                   </Button>
-                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                  <Button type="submit" className="bg-green-600 hover:bg-green-700 text-sm sm:text-base">
                     {currentPatient ? "Сохранить" : "Создать"}
                   </Button>
                 </div>

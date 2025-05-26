@@ -485,23 +485,23 @@ const Appointments = () => {
     <div className="min-h-screen bg-gray-100">
       <Header appName="Управление приемами" />
 
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">
+      <div className="container mx-auto p-3 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">
           {isDoctor() ? "Мои приемы" : "Управление приемами"}
         </h1>
 
         {loading ? (
-          <Loader className="flex justify-center my-8" />
+          <Loader className="flex justify-center my-6 sm:my-8" />
         ) : (
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex justify-between mb-4 flex-wrap gap-4">
-              <div className="flex space-x-4 flex-wrap">
+          <div className="bg-white p-3 sm:p-6 rounded-lg shadow-md">
+            <div className="flex flex-col sm:flex-row justify-between mb-4 gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
                 <Input
                   type="text"
                   placeholder="Поиск по пациенту..."
                   value={patientSearch}
                   onChange={(e) => setPatientSearch(e.target.value)}
-                  className="w-64"
+                  className="w-full sm:w-48 md:w-64"
                 />
                 {!isDoctor() && (
                   <Input
@@ -509,6 +509,7 @@ const Appointments = () => {
                     placeholder="Поиск по врачу..."
                     value={doctorSearch}
                     onChange={(e) => setDoctorSearch(e.target.value)}
+                    className="w-full sm:w-48 md:w-64"
                   />
                 )}
                 <Input
@@ -516,18 +517,22 @@ const Appointments = () => {
                   placeholder="Фильтр по дате..."
                   value={dateSearch}
                   onChange={(e) => setDateSearch(e.target.value)}
+                  className="w-full sm:w-48"
                 />
                 {(patientSearch || doctorSearch || dateSearch) && (
                   <Button 
                     onClick={resetFilters}
-                    className="bg-gray-600 hover:bg-gray-700"
+                    className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
                   >
                     Сбросить фильтры
                   </Button>
                 )}
               </div>
               {isNurse() && (
-                <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+                <Button 
+                  onClick={() => setIsModalOpen(true)} 
+                  className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
+                >
                   Создать новый прием
                 </Button>
               )}
@@ -538,33 +543,33 @@ const Appointments = () => {
                 <thead>
                   <tr>
                     <th 
-                      className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                      className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer hover:bg-gray-50"
                       onClick={() => requestSort('patient')}
                     >
                       Пациент {getSortIndicator('patient', sortConfig)}
                     </th>
                     {!isDoctor() && (
                       <th 
-                        className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                        className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer hover:bg-gray-50"
                         onClick={() => requestSort('doctor')}
                       >
                         Врач {getSortIndicator('doctor', sortConfig)}
                       </th>
                     )}
                     <th 
-                      className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                      className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer hover:bg-gray-50"
                       onClick={() => requestSort('date')}
                     >
                       Дата {getSortIndicator('date', sortConfig)}
                     </th>
                     <th 
-                      className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
+                      className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer hover:bg-gray-50"
                       onClick={() => requestSort('time')}
                     >
                       Время {getSortIndicator('time', sortConfig)}
                     </th>
-                    <th className="py-2 px-4 border-b">Причина</th>
-                    {isNurse() && <th className="py-2 px-4 border-b">Действия</th>}
+                    <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Причина</th>
+                    {isNurse() && <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Действия</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -575,25 +580,33 @@ const Appointments = () => {
 
                       return (
                         <tr key={appointment.appointmentid} className="hover:bg-gray-50">
-                          <td className="py-2 px-4 border-b">
+                          <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">
                             {patient ? `${patient.lastname} ${patient.firstname} ${patient.middlename || ''}` : "Неизвестный пациент"}
                           </td>
                           {!isDoctor() && (
-                            <td className="py-2 px-4 border-b">
+                            <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">
                               {doctor ? `${doctor.lastname} ${doctor.firstname} ${doctor.middlename || ''}` : "Неизвестный врач"}
                             </td>
                           )}
-                          <td className="py-2 px-4 border-b">{new Date(appointment.date).toLocaleDateString()}</td>
-                          <td className="py-2 px-4 border-b">{appointment.time.slice(0, 5)}</td>
-                          <td className="py-2 px-4 border-b">{appointment.reason}</td>
+                          <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{new Date(appointment.date).toLocaleDateString()}</td>
+                          <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{appointment.time.slice(0, 5)}</td>
+                          <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{appointment.reason}</td>
                           {isNurse() && (
-                            <td className="py-2 px-4 border-b">
-                              <Button onClick={() => handleEdit(appointment)} className="mr-2 bg-blue-600 hover:bg-blue-700">
-                                Редактировать
-                              </Button>
-                              <Button onClick={() => handleDelete(appointment.appointmentid)} className="bg-red-600 hover:bg-red-700">
-                                Удалить
-                              </Button>
+                            <td className="py-2 px-2 sm:px-4 border-b">
+                              <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                                <Button 
+                                  onClick={() => handleEdit(appointment)} 
+                                  className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
+                                >
+                                  Редактировать
+                                </Button>
+                                <Button 
+                                  onClick={() => handleDelete(appointment.appointmentid)} 
+                                  className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
+                                >
+                                  Удалить
+                                </Button>
+                              </div>
                             </td>
                           )}
                         </tr>
@@ -601,7 +614,7 @@ const Appointments = () => {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={isDoctor() ? (isNurse() ? 5 : 4) : (isNurse() ? 6 : 5)} className="py-4 text-center text-gray-500">
+                      <td colSpan={isDoctor() ? (isNurse() ? 5 : 4) : (isNurse() ? 6 : 5)} className="py-4 text-center text-xs sm:text-sm text-gray-500">
                         {appointments.length === 0 ? "Нет данных о приемах" : "Ничего не найдено"}
                       </td>
                     </tr>
@@ -614,20 +627,26 @@ const Appointments = () => {
 
         {isNurse() && (
           <Modal isOpen={isModalOpen} onClose={handleCancel}>
-            <div className="p-6">
-              <h2 className="text-xl font-semibold mb-4">
+            <div className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
                 {currentAppointment ? "Редактировать прием" : "Создать новый прием"}
               </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Пациент</label>
-                  <Button onClick={() => setIsPatientModalOpen(true)} className="w-full bg-blue-600 hover:bg-blue-700">
+                  <label className="block text-sm sm:text-base font-medium text-gray-700">Пациент</label>
+                  <Button 
+                    onClick={() => setIsPatientModalOpen(true)} 
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-base"
+                  >
                     {selectedPatient ? `${selectedPatient.lastname} ${selectedPatient.firstname}` : "Выберите пациента"}
                   </Button>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Врач</label>
-                  <Button onClick={() => setIsDoctorModalOpen(true)} className="w-full bg-blue-600 hover:bg-blue-700">
+                  <label className="block text-sm sm:text-base font-medium text-gray-700">Врач</label>
+                  <Button 
+                    onClick={() => setIsDoctorModalOpen(true)} 
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-base"
+                  >
                     {selectedDoctor ? `${selectedDoctor.lastname} ${selectedDoctor.firstname}` : "Выберите врача"}
                   </Button>
                 </div>
@@ -640,11 +659,11 @@ const Appointments = () => {
                 />
                 {isDoctorAvailable ? (
                   <Input
-                  label="Время"
-                  name="time"
-                  value={formData.time}
-                  onChange={handleInputChange}
-                  type="select"
+                    label="Время"
+                    name="time"
+                    value={formData.time}
+                    onChange={handleInputChange}
+                    type="select"
                   >
                     <option value="">Выберите время</option>
                     {availableTimeSlots.map((slot, index) => (
@@ -659,7 +678,7 @@ const Appointments = () => {
                     ))}
                   </Input>
                 ) : (
-                  <p className="text-red-500">Врач не принимает пациентов в выбранную дату.</p>
+                  <p className="text-red-500 text-sm sm:text-base">Врач не принимает пациентов в выбранную дату.</p>
                 )}
                 <Input
                   label="Причина"
@@ -668,11 +687,19 @@ const Appointments = () => {
                   onChange={handleInputChange}
                   type="text"
                 />
-                <div className="flex justify-end space-x-4">
-                  <Button type="button" onClick={handleCancel} className="bg-gray-600 hover:bg-gray-700">
+                <div className="flex justify-end gap-3 sm:gap-4">
+                  <Button 
+                    type="button" 
+                    onClick={handleCancel} 
+                    className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
+                  >
                     Отмена
                   </Button>
-                  <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={!isDoctorAvailable}>
+                  <Button 
+                    type="submit" 
+                    className="bg-green-600 hover:bg-green-700 text-sm sm:text-base" 
+                    disabled={!isDoctorAvailable}
+                  >
                     {currentAppointment ? "Сохранить" : "Создать"}
                   </Button>
                 </div>
@@ -683,8 +710,8 @@ const Appointments = () => {
 
         {isNurse() && (
           <Modal isOpen={isDoctorModalOpen} onClose={() => setIsDoctorModalOpen(false)}>
-            <div className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Выберите врача</h2>
+            <div className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Выберите врача</h2>
               <div className="mb-4">
                 <Input
                   type="text"
@@ -694,7 +721,7 @@ const Appointments = () => {
                   className="w-full"
                 />
               </div>
-              <div className="flex mb-2">
+              <div className="flex mb-2 text-xs sm:text-sm">
                 <div 
                   className="w-1/3 p-2 font-semibold cursor-pointer"
                   onClick={() => requestDoctorSort('name')}
@@ -708,11 +735,11 @@ const Appointments = () => {
                   Специальность {getSortIndicator('specialty', doctorSortConfig)}
                 </div>
               </div>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="space-y-2 max-h-96 overflow-y-auto text-sm sm:text-base">
                 {filteredDoctors.map((doctor) => (
                   <div
                     key={doctor.userid}
-                    className="p-4 border rounded-lg cursor-pointer hover:bg-gray-100"
+                    className="p-3 sm:p-4 border rounded-lg cursor-pointer hover:bg-gray-100"
                     onClick={() => {
                       setSelectedDoctor(doctor);
                       setFormData({ ...formData, doctorid: doctor.userid });
@@ -730,8 +757,8 @@ const Appointments = () => {
         
         {isNurse() && (
           <Modal isOpen={isPatientModalOpen} onClose={() => setIsPatientModalOpen(false)}>
-            <div className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Выберите пациента</h2>
+            <div className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Выберите пациента</h2>
               <div className="mb-4">
                 <Input
                   type="text"
@@ -741,7 +768,7 @@ const Appointments = () => {
                   className="w-full"
                 />
               </div>
-              <div className="flex mb-2">
+              <div className="flex mb-2 text-xs sm:text-sm">
                 <div 
                   className="w-1/2 p-2 font-semibold cursor-pointer"
                   onClick={() => requestPatientSort('name')}
@@ -755,11 +782,11 @@ const Appointments = () => {
                   Дата рождения {getSortIndicator('dateofbirth', patientSortConfig)}
                 </div>
               </div>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="space-y-2 max-h-96 overflow-y-auto text-sm sm:text-base">
                 {filteredPatients.map((patient) => (
                   <div
                     key={patient.patientid}
-                    className="p-4 border rounded-lg cursor-pointer hover:bg-gray-100"
+                    className="p-3 sm:p-4 border rounded-lg cursor-pointer hover:bg-gray-100"
                     onClick={() => {
                       setSelectedPatient(patient);
                       setFormData({ ...formData, patientid: patient.patientid });

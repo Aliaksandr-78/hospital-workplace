@@ -775,17 +775,17 @@ const PatientMedicalRecord = () => {
     <div className="min-h-screen bg-gray-100">
       <Header appName={`Медицинская карта пациента: ${patientFullName}`} />
 
-      <div className="container mx-auto p-4 flex">
-        {/* Левая панель с деревьями */}
-        <div className="w-1/3 pr-4">
+      <div className="container mx-auto p-3 sm:p-4 flex flex-col lg:flex-row gap-4">
+        {/* Левая панель с деревьями - становится верхней на мобильных */}
+        <div className="w-full lg:w-1/3 lg:pr-4 space-y-4">
           {/* Дерево особенностей пациента */}
-          <div className="bg-white p-4 rounded-lg shadow-md mb-4">
+          <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-2">
-              <h2 className="text-xl font-semibold">Особенности пациента</h2>
+              <h2 className="text-lg sm:text-xl font-semibold">Особенности пациента</h2>
               {filteredFeatures.length > 2 && (
                 <button
                   onClick={() => setExpandedFeatures(!expandedFeatures)}
-                  className="text-sm text-blue-600 hover:text-blue-800"
+                  className="text-xs sm:text-sm text-blue-600 hover:text-blue-800"
                 >
                   {expandedFeatures ? 'Свернуть' : 'Развернуть'}
                 </button>
@@ -798,7 +798,7 @@ const PatientMedicalRecord = () => {
                 value={featureSearchDate}
                 onChange={(e) => setFeatureSearchDate(e.target.value)}
                 placeholder="Поиск по дате"
-                className="w-full text-sm"
+                className="w-full text-xs sm:text-sm"
               />
             </div>
             
@@ -807,21 +807,21 @@ const PatientMedicalRecord = () => {
                 displayedFeatures.map(feature => (
                   <div
                     key={feature.featureid}
-                    className={`p-2 mb-1 cursor-pointer rounded ${selectedFeature?.featureid === feature.featureid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+                    className={`p-2 mb-1 cursor-pointer rounded text-xs sm:text-sm ${selectedFeature?.featureid === feature.featureid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
                     onClick={() => setSelectedFeature(feature)}
                   >
                     <div className="flex justify-between">
                       <span className={`${!feature.isactive ? 'line-through text-gray-500' : ''}`}>
                         {feature.featuretype}: {feature.featurevalue}
                       </span>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-xs text-gray-500">
                         {new Date(feature.dateidentified).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-2 text-gray-500 text-sm">
+                <div className="text-center py-2 text-gray-500 text-xs sm:text-sm">
                   {filteredFeatures.length === 0 ? 'Нет результатов' : 'Используйте поиск'}
                 </div>
               )}
@@ -830,7 +830,7 @@ const PatientMedicalRecord = () => {
             {isDoctor() && (
               <Button
                 onClick={() => openFeatureModal()}
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full bg-green-600 hover:bg-green-700 text-xs sm:text-sm"
               >
                 Добавить особенность
               </Button>
@@ -838,13 +838,13 @@ const PatientMedicalRecord = () => {
           </div>
 
           {/* Дерево записей в карте */}
-          <div className="bg-white p-4 rounded-lg shadow-md mb-4">
+          <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-2">
-              <h2 className="text-xl font-semibold">Записи в карте</h2>
+              <h2 className="text-lg sm:text-xl font-semibold">Записи в карте</h2>
               {filteredEntries.length > 2 && (
                 <button
                   onClick={() => setExpandedEntries(!expandedEntries)}
-                  className="text-sm text-blue-600 hover:text-blue-800"
+                  className="text-xs sm:text-sm text-blue-600 hover:text-blue-800"
                 >
                   {expandedEntries ? 'Свернуть' : 'Развернуть'}
                 </button>
@@ -857,7 +857,7 @@ const PatientMedicalRecord = () => {
                 value={entrySearchDate}
                 onChange={(e) => setEntrySearchDate(e.target.value)}
                 placeholder="Поиск по дате"
-                className="w-full text-sm"
+                className="w-full text-xs sm:text-sm"
               />
             </div>
             
@@ -868,19 +868,19 @@ const PatientMedicalRecord = () => {
                   .map(entry => (
                     <div
                       key={entry.entryid}
-                      className={`p-2 mb-1 cursor-pointer rounded ${selectedEntry?.entryid === entry.entryid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+                      className={`p-2 mb-1 cursor-pointer rounded text-xs sm:text-sm ${selectedEntry?.entryid === entry.entryid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
                       onClick={() => handleEntrySelect(entry)}
                     >
                       <div className="flex justify-between">
                         <span>{new Date(entry.entrydate).toLocaleDateString()}</span>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-xs text-gray-500">
                           {entry.doctorspecialty || "Неизвестно"}
                         </span>
                       </div>
                     </div>
                   ))
               ) : (
-                <div className="text-center py-2 text-gray-500 text-sm">
+                <div className="text-center py-2 text-gray-500 text-xs sm:text-sm">
                   {filteredEntries.length === 0 ? 'Нет результатов' : 'Используйте поиск'}
                 </div>
               )}
@@ -889,7 +889,7 @@ const PatientMedicalRecord = () => {
             {isDoctor() && (
               <Button
                 onClick={() => openEntryModal()}
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full bg-green-600 hover:bg-green-700 text-xs sm:text-sm"
               >
                 Создать запись
               </Button>
@@ -897,13 +897,13 @@ const PatientMedicalRecord = () => {
           </div>
 
           {/* Дерево лабораторных тестов */}
-          <div className="bg-white p-4 rounded-lg shadow-md">
+          <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-2">
-              <h2 className="text-xl font-semibold">Лабораторные тесты</h2>
+              <h2 className="text-lg sm:text-xl font-semibold">Лабораторные тесты</h2>
               {filteredLabTests.length > 2 && (
                 <button
                   onClick={() => setExpandedLabTests(!expandedLabTests)}
-                  className="text-sm text-blue-600 hover:text-blue-800"
+                  className="text-xs sm:text-sm text-blue-600 hover:text-blue-800"
                 >
                   {expandedLabTests ? 'Свернуть' : 'Развернуть'}
                 </button>
@@ -916,7 +916,7 @@ const PatientMedicalRecord = () => {
                 value={labTestSearchDate}
                 onChange={(e) => setLabTestSearchDate(e.target.value)}
                 placeholder="Поиск по дате"
-                className="w-full text-sm"
+                className="w-full text-xs sm:text-sm"
               />
             </div>
             
@@ -927,7 +927,7 @@ const PatientMedicalRecord = () => {
                   .map(test => (
                     <div
                       key={test.resultid}
-                      className={`p-2 mb-1 cursor-pointer rounded ${selectedLabTest?.resultid === test.resultid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+                      className={`p-2 mb-1 cursor-pointer rounded text-xs sm:text-sm ${selectedLabTest?.resultid === test.resultid ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
                       onClick={() => setSelectedLabTest(test)}
                     >
                       <div className="flex justify-between">
@@ -936,14 +936,14 @@ const PatientMedicalRecord = () => {
                             ? new Date(test.resultdate).toLocaleDateString()
                             : new Date(test.orderdate).toLocaleDateString()}
                         </span>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-xs text-gray-500">
                           {test.testname || getTestName(test.testid)} ({test.status})
                         </span>
                       </div>
                     </div>
                   ))
               ) : (
-                <div className="text-center py-2 text-gray-500 text-sm">
+                <div className="text-center py-2 text-gray-500 text-xs sm:text-sm">
                   {filteredLabTests.length === 0 ? 'Нет результатов' : 'Используйте поиск'}
                 </div>
               )}
@@ -952,7 +952,7 @@ const PatientMedicalRecord = () => {
             {(isDoctor() || isNurse()) && (
               <Button
                 onClick={() => openLabTestModal()}
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full bg-green-600 hover:bg-green-700 text-xs sm:text-sm"
               >
                 Создать тест
               </Button>
@@ -960,37 +960,37 @@ const PatientMedicalRecord = () => {
           </div>
         </div>
 
-        {/* Правая панель с деталями */}
-        <div className="w-2/3 pl-4">
-          {error && <div className="text-red-500 mb-4">{error}</div>}
+        {/* Правая панель с деталями - становится нижней на мобильных */}
+        <div className="w-full lg:w-2/3 lg:pl-4 space-y-4">
+          {error && <div className="text-red-500 text-xs sm:text-sm mb-4">{error}</div>}
 
           {/* Детали выбранной особенности */}
           {selectedFeature && (
-            <div className="bg-white p-4 rounded-lg shadow-md mb-4">
-              <h2 className="text-xl font-semibold mb-2">Детали особенности</h2>
-              <div className="mb-4">
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
+              <h2 className="text-lg sm:text-xl font-semibold mb-2">Детали особенности</h2>
+              <div className="mb-4 text-xs sm:text-sm space-y-1">
                 <p><strong>Тип:</strong> {selectedFeature.featuretype}</p>
                 <p><strong>Значение:</strong> {selectedFeature.featurevalue}</p>
                 <p><strong>Дата выявления:</strong> {new Date(selectedFeature.dateidentified).toLocaleDateString()}</p>
                 <p><strong>Статус:</strong> {selectedFeature.isactive ? "Активно" : "Неактивно"}</p>
               </div>
               {isDoctor() && (
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={() => openFeatureModal(selectedFeature)}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
                   >
                     Редактировать
                   </Button>
                   <Button
                     onClick={() => handleToggleFeatureStatus(selectedFeature.featureid)}
-                    className={selectedFeature.isactive ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"}
+                    className={`text-xs sm:text-sm ${selectedFeature.isactive ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"}`}
                   >
                     {selectedFeature.isactive ? "Деактивировать" : "Активировать"}
                   </Button>
                   <Button
                     onClick={() => handleDeleteFeature(selectedFeature.featureid)}
-                    className="bg-red-600 hover:bg-red-700"
+                    className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
                   >
                     Удалить
                   </Button>
@@ -1001,9 +1001,9 @@ const PatientMedicalRecord = () => {
 
           {/* Детали выбранной записи */}
           {selectedEntry && (
-            <div className="bg-white p-4 rounded-lg shadow-md mb-4">
-              <h2 className="text-xl font-semibold mb-2">Детали записи</h2>
-              <div className="mb-4">
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
+              <h2 className="text-lg sm:text-xl font-semibold mb-2">Детали записи</h2>
+              <div className="mb-4 text-xs sm:text-sm space-y-1">
                 <p><strong>Дата:</strong> {new Date(selectedEntry.entrydate).toLocaleString()}</p>
                 <p><strong>Тип:</strong> {selectedEntry.entrytype}</p>
                 <p><strong>Содержание:</strong> {selectedEntry.content}</p>
@@ -1013,31 +1013,31 @@ const PatientMedicalRecord = () => {
               </div>
               
               {isDoctor() && isEntryAuthor(selectedEntry) && (
-                <div className="flex space-x-2 mb-4">
+                <div className="flex flex-wrap gap-2 mb-4">
                   <Button
                     onClick={() => openEntryModal(selectedEntry)}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
                   >
                     Редактировать
                   </Button>
                   <Button
                     onClick={() => handleDeleteEntry(selectedEntry.entryid)}
-                    className="bg-red-600 hover:bg-red-700"
+                    className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
                   >
                     Удалить
                   </Button>
                 </div>
               )}
 
-              <h3 className="text-lg font-semibold mb-2">Назначения</h3>
+              <h3 className="text-md sm:text-lg font-semibold mb-2">Назначения</h3>
               <div className="mb-4 space-y-3">
                 {/* Временные назначения (если есть) */}
                 {tempPrescriptions.map((prescription, index) => (
-                  <div key={`temp-${index}`} className="p-3 bg-gray-100 rounded-md">
+                  <div key={`temp-${index}`} className="p-2 sm:p-3 bg-gray-100 rounded-md text-xs sm:text-sm">
                     <p className="font-medium">
                       {prescription.medicationName || `Препарат #${prescription.medicationid}`}
                     </p>
-                    <div className="mt-1 text-sm text-gray-600 space-y-1">
+                    <div className="mt-1 text-gray-600 space-y-1">
                       {prescription.dosage && <p>Дозировка: {prescription.dosage}</p>}
                       {prescription.instructions && <p>Инструкции: {prescription.instructions}</p>}
                     </div>
@@ -1049,7 +1049,7 @@ const PatientMedicalRecord = () => {
                     {isDoctor() && isEntryAuthor(selectedEntry) && (
                       <Button
                         onClick={() => handleRemoveTempPrescription(index)}
-                        className="mt-2 bg-red-600 hover:bg-red-700 text-sm"
+                        className="mt-2 bg-red-600 hover:bg-red-700 text-xs"
                       >
                         Удалить
                       </Button>
@@ -1059,13 +1059,13 @@ const PatientMedicalRecord = () => {
 
                 {/* Сохраненные назначения */}
                 {entryPrescriptions.map(prescription => (
-                  <div key={prescription.prescriptionid} className="p-3 bg-white border rounded-md">
-                    <div className="flex justify-between items-start">
+                  <div key={prescription.prescriptionid} className="p-2 sm:p-3 bg-white border rounded-md text-xs sm:text-sm">
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                       <div>
                         <p className="font-medium">
                           {getMedicationName(prescription.medicationid)}
                         </p>
-                        <div className="mt-1 text-sm text-gray-600 space-y-1">
+                        <div className="mt-1 text-gray-600 space-y-1">
                           <p>Дозировка: {prescription.dosage}</p>
                           {prescription.instructions && <p>Инструкции: {prescription.instructions}</p>}
                           <p>Назначил: {prescription.doctorname}</p>
@@ -1079,7 +1079,7 @@ const PatientMedicalRecord = () => {
                       {isDoctor() && isEntryAuthor(selectedEntry) && (
                         <Button
                           onClick={() => handleDeletePrescription(prescription.prescriptionid)}
-                          className="bg-red-600 hover:bg-red-700 text-sm"
+                          className="bg-red-600 hover:bg-red-700 text-xs"
                         >
                           Удалить
                         </Button>
@@ -1089,7 +1089,7 @@ const PatientMedicalRecord = () => {
                 ))}
 
                 {(tempPrescriptions.length === 0 && entryPrescriptions.length === 0) && (
-                  <div className="text-center py-4 text-gray-500">
+                  <div className="text-center py-4 text-gray-500 text-xs sm:text-sm">
                     Нет назначений для этой записи
                   </div>
                 )}
@@ -1097,17 +1097,17 @@ const PatientMedicalRecord = () => {
 
               {/* Кнопки действий */}
               {isDoctor() && isEntryAuthor(selectedEntry) && (
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={openPrescriptionModal}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-green-600 hover:bg-green-700 text-xs sm:text-sm"
                   >
                     Добавить назначение
                   </Button>
                   {tempPrescriptions.length > 0 && (
                     <Button
                       onClick={() => handleSaveAll(selectedEntry.entryid)}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
                     >
                       Сохранить все
                     </Button>
@@ -1115,7 +1115,7 @@ const PatientMedicalRecord = () => {
                   {selectedEntry.diagnosisid && (
                     <Button
                       onClick={getRecommendations}
-                      className="bg-purple-600 hover:bg-purple-700"
+                      className="bg-purple-600 hover:bg-purple-700 text-xs sm:text-sm"
                     >
                       Получить рекомендации
                     </Button>
@@ -1127,9 +1127,9 @@ const PatientMedicalRecord = () => {
 
           {/* Детали выбранного теста */}
           {selectedLabTest && (
-            <div className="bg-white p-4 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold mb-2">Детали теста</h2>
-              <div className="mb-4">
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
+              <h2 className="text-lg sm:text-xl font-semibold mb-2">Детали теста</h2>
+              <div className="mb-4 text-xs sm:text-sm space-y-1">
                 <p><strong>Тест:</strong> {selectedLabTest.testname || getTestName(selectedLabTest.testid)}</p>
                 <p><strong>Статус:</strong> {selectedLabTest.status}</p>
                 <p><strong>Дата назначения:</strong> {new Date(selectedLabTest.orderdate).toLocaleString()}</p>
@@ -1144,17 +1144,17 @@ const PatientMedicalRecord = () => {
                 )}
               </div>
               {(isDoctor() || isNurse()) && isLabTestAuthor(selectedLabTest) && (
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={() => openLabTestModal(selectedLabTest)}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
                   >
                     Редактировать
                   </Button>
                   {isDoctor() && (
                     <Button
                       onClick={() => handleDeleteLabTest(selectedLabTest.resultid)}
-                      className="bg-red-600 hover:bg-red-700"
+                      className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
                     >
                       Удалить
                     </Button>

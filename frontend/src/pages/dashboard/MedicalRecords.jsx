@@ -156,15 +156,14 @@ const MedicalRecords = () => {
     <div className="min-h-screen bg-gray-100">
       <Header appName="Медицинские карты пациентов" />
 
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">Медицинские карты пациентов</h1>
+      <div className="container mx-auto p-3 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">Медицинские карты пациентов</h1>
 
-        {loading && <Loader className="flex justify-center my-8" />}
+        {loading && <Loader className="flex justify-center my-6 sm:my-8" />}
+        {error && <p className="text-red-500 text-center mb-3 sm:mb-4 text-sm sm:text-base">{error}</p>}
 
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-
-        <div className="flex justify-between mb-4">
-          <div className="w-1/2">
+        <div className="flex flex-col sm:flex-row justify-between mb-4 gap-3">
+          <div className="w-full sm:w-1/2">
             <Input
               type="text"
               placeholder="Поиск карт по пациенту..."
@@ -176,46 +175,46 @@ const MedicalRecords = () => {
           {(isAdmin() || isNurse()) && (
             <Button 
               onClick={() => setIsModalOpen(true)} 
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
             >
               Создать новую медицинскую карту
             </Button>
           )}
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-3 sm:p-6 rounded-lg shadow-md overflow-x-auto">
           <table className="min-w-full bg-white">
             <thead>
               <tr>
-                <th className="py-2 px-4 border-b text-center">Пациент</th>
-                <th className="py-2 px-4 border-b text-center">Дата создания</th>
-                <th className="py-2 px-4 border-b text-center">Действия</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm text-center">Пациент</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm text-center">Дата создания</th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm text-center">Действия</th>
               </tr>
             </thead>
             <tbody>
               {filteredRecords.length > 0 ? (
                 filteredRecords.map((record) => (
                   <tr key={record.recordid} className="hover:bg-gray-50">
-                    <td className="py-2 px-4 border-b text-center">
+                    <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm text-center">
                       {patients.find((p) => p.patientid === record.patientid)?.lastname}{" "}
                       {patients.find((p) => p.patientid === record.patientid)?.firstname}{" "}
                       {patients.find((p) => p.patientid === record.patientid)?.middlename}
                     </td>
-                    <td className="py-2 px-4 border-b text-center">
+                    <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm text-center">
                       {new Date(record.createdat).toLocaleDateString()}
                     </td>
-                    <td className="py-2 px-4 border-b text-center">
-                      <div className="flex justify-center space-x-2">
+                    <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm text-center">
+                      <div className="flex flex-col sm:flex-row justify-center gap-1 sm:gap-2">
                         <Button
                           onClick={() => navigate(`/patient-medical-record/${record.recordid}`)}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm"
                         >
                           Перейти
                         </Button>
                         {isAdmin() && (
                           <Button
                             onClick={() => handleDelete(record.recordid)}
-                            className="bg-red-600 hover:bg-red-700"
+                            className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
                           >
                             Удалить
                           </Button>
@@ -226,7 +225,7 @@ const MedicalRecords = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="3" className="py-4 text-center text-gray-500">
+                  <td colSpan="3" className="py-4 text-center text-xs sm:text-sm text-gray-500">
                     {searchTerm ? "Ничего не найдено" : "Нет медицинских карт"}
                   </td>
                 </tr>
@@ -237,11 +236,11 @@ const MedicalRecords = () => {
 
         {(isAdmin() || isNurse()) && (
           <Modal isOpen={isModalOpen} onClose={handleCancel}>
-            <div className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Создать новую медицинскую карту</h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Создать новую медицинскую карту</h2>
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Поиск пациента*</label>
+                  <label className="block text-sm sm:text-base font-medium text-gray-700">Поиск пациента*</label>
                   <Input
                     type="text"
                     placeholder="Введите ФИО пациента..."
@@ -250,11 +249,11 @@ const MedicalRecords = () => {
                     className="w-full"
                   />
                   {selectedPatient && (
-                    <div className="p-2 bg-gray-100 rounded">
+                    <div className="p-2 bg-gray-100 rounded text-sm sm:text-base">
                       Выбран: {selectedPatient.lastname} {selectedPatient.firstname} {selectedPatient.middlename}
                     </div>
                   )}
-                  <div className="max-h-60 overflow-y-auto border rounded">
+                  <div className="max-h-60 overflow-y-auto border rounded text-sm sm:text-base">
                     {filteredPatients.map(patient => (
                       <div 
                         key={patient.patientid}
@@ -267,19 +266,19 @@ const MedicalRecords = () => {
                   </div>
                 </div>
                 
-                {error && <p className="text-red-500">{error}</p>}
+                {error && <p className="text-red-500 text-sm sm:text-base">{error}</p>}
                 
-                <div className="flex justify-end space-x-4">
+                <div className="flex justify-end gap-3 sm:gap-4">
                   <Button
                     type="button"
                     onClick={handleCancel}
-                    className="bg-gray-600 hover:bg-gray-700"
+                    className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
                   >
                     Отмена
                   </Button>
                   <Button 
                     type="submit" 
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
                     disabled={!selectedPatient}
                   >
                     Создать

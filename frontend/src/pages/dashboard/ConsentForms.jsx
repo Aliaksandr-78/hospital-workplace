@@ -263,38 +263,39 @@ const ConsentForms = () => {
     <div className="min-h-screen bg-gray-100">
       <Header appName="Управление согласиями" />
 
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6 text-center">Управление согласиями</h1>
+      <div className="container mx-auto p-3 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">Управление согласиями</h1>
 
-        {loading && <Loader className="flex justify-center my-8" />}
+        {loading && <Loader className="flex justify-center my-6 sm:my-8" />}
+        {error && <p className="text-red-500 text-center mb-3 sm:mb-4 text-sm sm:text-base">{error}</p>}
 
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-
-        <div className="flex justify-between mb-4 flex-wrap gap-4">
-          <div className="flex space-x-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row justify-between mb-4 gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
             <Input
               type="text"
               placeholder="Поиск по пациенту..."
               value={patientSearch}
               onChange={handlePatientSearchChange}
-              className="w-64"
+              className="w-full sm:w-48 md:w-64"
             />
             <Input
               type="text"
               placeholder="Поиск по процедуре..."
               value={procedureSearch}
               onChange={handleProcedureSearchChange}
+              className="w-full sm:w-48 md:w-64"
             />
             <Input
               type="date"
               placeholder="Фильтр по дате..."
               value={dateSearch}
               onChange={handleDateSearchChange}
+              className="w-full sm:w-48"
             />
             {(patientSearch || procedureSearch || dateSearch) && (
               <Button 
                 onClick={resetFilters}
-                className="bg-gray-600 hover:bg-gray-700"
+                className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
               >
                 Сбросить фильтры
               </Button>
@@ -302,84 +303,82 @@ const ConsentForms = () => {
           </div>
           <Button 
             onClick={() => setIsModalOpen(true)} 
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-green-600 hover:bg-green-700 text-sm sm:text-base"
           >
             Создать новое согласие
           </Button>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white">
-              <thead>
+        <div className="bg-white p-3 sm:p-6 rounded-lg shadow-md overflow-x-auto">
+          <table className="min-w-full bg-white">
+            <thead>
+              <tr>
+                <th 
+                  className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer hover:bg-gray-50"
+                  onClick={() => requestSort('patient')}
+                >
+                  Пациент {getSortIndicator('patient')}
+                </th>
+                <th 
+                  className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer hover:bg-gray-50"
+                  onClick={() => requestSort('procedure')}
+                >
+                  Процедура {getSortIndicator('procedure')}
+                </th>
+                <th 
+                  className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm cursor-pointer hover:bg-gray-50"
+                  onClick={() => requestSort('date')}
+                >
+                  Дата {getSortIndicator('date')}
+                </th>
+                <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Детали</th>
+                {(isAdmin() || isDoctor()) && <th className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">Действия</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredConsentForms.length > 0 ? (
+                filteredConsentForms.map((consentForm) => {
+                  const patient = patients.find(p => p.patientid === consentForm.patientid)
+                  return (
+                    <tr key={consentForm.consentformid} className="hover:bg-gray-50">
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">
+                        {patient ? `${patient.lastname} ${patient.firstname} ${patient.middlename || ''}` : 'Неизвестный пациент'}
+                      </td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{consentForm.procedure}</td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">
+                        {new Date(consentForm.date).toLocaleDateString()}
+                      </td>
+                      <td className="py-2 px-2 sm:px-4 border-b text-xs sm:text-sm">{consentForm.details}</td>
+                      {(isAdmin() || isDoctor()) && 
+                        <td className="py-2 px-2 sm:px-4 border-b">
+                          <Button
+                            onClick={() => handleDelete(consentForm.consentformid)}
+                            className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
+                          >
+                            Удалить
+                          </Button>
+                        </td>
+                      }
+                    </tr>
+                  )
+                })
+              ) : (
                 <tr>
-                  <th 
-                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
-                    onClick={() => requestSort('patient')}
-                  >
-                    Пациент {getSortIndicator('patient')}
-                  </th>
-                  <th 
-                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
-                    onClick={() => requestSort('procedure')}
-                  >
-                    Процедура {getSortIndicator('procedure')}
-                  </th>
-                  <th 
-                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-50"
-                    onClick={() => requestSort('date')}
-                  >
-                    Дата {getSortIndicator('date')}
-                  </th>
-                  <th className="py-2 px-4 border-b">Детали</th>
-                  {(isAdmin() || isDoctor()) && <th className="py-2 px-4 border-b">Действия</th>}
+                  <td colSpan={(isAdmin() || isDoctor()) ? 5 : 4} className="py-4 text-center text-xs sm:text-sm text-gray-500">
+                    {consentForms.length === 0 ? "Нет данных о согласиях" : "Ничего не найдено"}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredConsentForms.length > 0 ? (
-                  filteredConsentForms.map((consentForm) => {
-                    const patient = patients.find(p => p.patientid === consentForm.patientid)
-                    return (
-                      <tr key={consentForm.consentformid} className="hover:bg-gray-50">
-                        <td className="py-2 px-4 border-b">
-                          {patient ? `${patient.lastname} ${patient.firstname} ${patient.middlename || ''}` : 'Неизвестный пациент'}
-                        </td>
-                        <td className="py-2 px-4 border-b">{consentForm.procedure}</td>
-                        <td className="py-2 px-4 border-b">
-                          {new Date(consentForm.date).toLocaleDateString()}
-                        </td>
-                        <td className="py-2 px-4 border-b">{consentForm.details}</td>
-                        {(isAdmin() || isDoctor()) && 
-                          <td className="py-2 px-4 border-b">
-                            <Button
-                              onClick={() => handleDelete(consentForm.consentformid)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Удалить
-                            </Button>
-                          </td>
-                        }
-                      </tr>
-                    )
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={(isAdmin() || isDoctor()) ? 5 : 4} className="py-4 text-center text-gray-500">
-                      {consentForms.length === 0 ? "Нет данных о согласиях" : "Ничего не найдено"}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              )}
+            </tbody>
+          </table>
         </div>
 
         <Modal isOpen={isModalOpen} onClose={handleCancel}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Создать новое согласие</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Создать новое согласие</h2>
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Пациент *</label>
+                <label className="block text-sm sm:text-base font-medium text-gray-700">Пациент *</label>
                 <Input
                   type="text"
                   placeholder="Поиск пациента..."
@@ -388,11 +387,11 @@ const ConsentForms = () => {
                   className="w-full"
                 />
                 {formData.patientid && (
-                  <div className="p-2 bg-gray-100 rounded">
+                  <div className="p-2 bg-gray-100 rounded text-sm sm:text-base">
                     Выбран: {getSelectedPatientName()}
                   </div>
                 )}
-                <div className="max-h-60 overflow-y-auto border rounded">
+                <div className="max-h-60 overflow-y-auto border rounded text-sm sm:text-base">
                   {filteredPatients.map(patient => (
                     <div 
                       key={patient.patientid}
@@ -428,15 +427,15 @@ const ConsentForms = () => {
                 onChange={handleInputChange}
                 type="text"
               />
-              <div className="flex justify-end space-x-4">
+              <div className="flex justify-end gap-3 sm:gap-4">
                 <Button
                   type="button"
                   onClick={handleCancel}
-                  className="bg-gray-600 hover:bg-gray-700"
+                  className="bg-gray-600 hover:bg-gray-700 text-sm sm:text-base"
                 >
                   Отмена
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                <Button type="submit" className="bg-green-600 hover:bg-green-700 text-sm sm:text-base">
                   Создать
                 </Button>
               </div>
@@ -445,7 +444,7 @@ const ConsentForms = () => {
         </Modal>
       </div>
     </div>
-  )
+  );
 }
 
 export default ConsentForms
