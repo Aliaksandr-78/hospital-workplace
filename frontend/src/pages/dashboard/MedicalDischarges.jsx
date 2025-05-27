@@ -37,7 +37,7 @@ const MedicalDischarges = () => {
   const isDoctor = () => {
     return userRoles.some(userRole => {
       const role = allRoles.find(r => r.roleid === userRole.roleid)
-      return role && role.rolename === "Doctor"
+      return role && role.rolename === "Доктор"
     })
   }
 

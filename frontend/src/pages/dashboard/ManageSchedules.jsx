@@ -51,21 +51,21 @@ const ManageSchedules = () => {
   const isAdmin = useMemo(() => {
     return userRoles.some(userRole => {
       const role = allRoles.find(r => r.roleid === userRole.roleid);
-      return role && role.rolename === "Admin";
+      return role && role.rolename === "Администратор";
     });
   }, [userRoles, allRoles]);
 
   const isNurse = useMemo(() => {
     return userRoles.some(userRole => {
       const role = allRoles.find(r => r.roleid === userRole.roleid);
-      return role && role.rolename === "Nurse";
+      return role && role.rolename === "Медсестра";
     });
   }, [userRoles, allRoles]);
 
   const isDoctor = useMemo(() => {
     return userRoles.some(userRole => {
       const role = allRoles.find(r => r.roleid === userRole.roleid);
-      return role && role.rolename === "Doctor";
+      return role && role.rolename === "Доктор";
     });
   }, [userRoles, allRoles]);
 

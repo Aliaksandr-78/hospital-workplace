@@ -117,7 +117,7 @@ const Main = () => {
         </div>
 
         {/* Дополнительная информация в зависимости от роли */}
-        {getUserRoleNames().includes("Admin") && (
+        {getUserRoleNames().includes("Администратор") && (
           <div className="mt-4 sm:mt-6 bg-white p-4 sm:p-6 rounded-lg shadow-md">
             <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Администратор</h2>
             <p className="text-sm sm:text-base">
@@ -127,9 +127,9 @@ const Main = () => {
           </div>
         )}
 
-        {getUserRoleNames().includes("Врач") && (
+        {getUserRoleNames().includes("Доктор") && (
           <div className="mt-4 sm:mt-6 bg-white p-4 sm:p-6 rounded-lg shadow-md">
-            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Врач</h2>
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Доктор</h2>
             <p className="text-sm sm:text-base">
               Вы можете управлять приемами, назначать лечение и просматривать
               медицинские карты пациентов.

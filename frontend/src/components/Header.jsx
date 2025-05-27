@@ -44,22 +44,22 @@ const Header = ({ appName }) => {
   };
 
   const allLinks = [
-    { path: "/main", label: "Главная", roles: ["Admin", "Doctor", "Nurse"] },
-    { path: "/manage-users", label: "Пользователи", roles: ["Admin"] },
-    { path: "/manage-roles", label: "Роли", roles: ["Admin"] },
-    { path: "/manage-specialties", label: "Специальности", roles: ["Admin"] },
-    { path: "/manage-eventtypes", label: "Типы работы", roles: ["Admin"] },
-    { path: "/patients", label: "Пациенты", roles: ["Admin", "Doctor", "Nurse"] },
-    { path: "/medical-records", label: "Медицинские карты", roles: ["Admin", "Doctor", "Nurse"] },
-    { path: "/manage-diagnosis", label: "Диагнозы", roles: ["Admin", "Doctor"] },
-    { path: "/manage-medications", label: "Медикаменты", roles: ["Admin", "Doctor"] },
-    { path: "/manage-services", label: "Услуги", roles: ["Admin", "Doctor", "Nurse"] },
-    { path: "/manage-document-templates", label: "Документация", roles: ["Admin", "Doctor", "Nurse"] },
-    { path: "/manage-schedules", label: "График работы", roles: ["Admin", "Doctor", "Nurse"] },
-    { path: "/appointments", label: "Менеджер приемов", roles: ["Admin", "Doctor", "Nurse"] },
-    { path: "/consent-forms", label: "Согласия", roles: ["Admin", "Doctor", "Nurse"] },
-    { path: "/medical-certificates", label: "Справки", roles: ["Admin", "Doctor", "Nurse"] },
-    { path: "/medical-discharges", label: "Выписки", roles: ["Admin", "Doctor", "Nurse"] },
+    { path: "/main", label: "Главная", roles: ["Администратор", "Доктор", "Медсестра"] },
+    { path: "/manage-users", label: "Пользователи", roles: ["Администратор"] },
+    { path: "/manage-roles", label: "Роли", roles: ["Администратор"] },
+    { path: "/manage-specialties", label: "Специальности", roles: ["Администратор"] },
+    { path: "/manage-eventtypes", label: "Типы работы", roles: ["Администратор"] },
+    { path: "/patients", label: "Пациенты", roles: ["Администратор", "Доктор", "Медсестра"] },
+    { path: "/medical-records", label: "Медицинские карты", roles: ["Администратор", "Доктор", "Медсестра"] },
+    { path: "/manage-diagnosis", label: "Диагнозы", roles: ["Администратор", "Доктор"] },
+    { path: "/manage-medications", label: "Медикаменты", roles: ["Администратор", "Доктор"] },
+    { path: "/manage-services", label: "Услуги", roles: ["Администратор", "Доктор", "Медсестра"] },
+    { path: "/manage-document-templates", label: "Документация", roles: ["Администратор", "Доктор", "Медсестра"] },
+    { path: "/manage-schedules", label: "График работы", roles: ["Администратор", "Доктор", "Медсестра"] },
+    { path: "/appointments", label: "Менеджер приемов", roles: ["Администратор", "Доктор", "Медсестра"] },
+    { path: "/consent-forms", label: "Согласия", roles: ["Администратор", "Доктор", "Медсестра"] },
+    { path: "/medical-certificates", label: "Справки", roles: ["Администратор", "Доктор", "Медсестра"] },
+    { path: "/medical-discharges", label: "Выписки", roles: ["Администратор", "Доктор", "Медсестра"] },
   ];
 
   const getFilteredLinks = () => {

@@ -56,21 +56,21 @@ const Appointments = () => {
   const isAdmin = () => {
     return userRoles.some(userRole => {
       const role = allRoles.find(r => r.roleid === userRole.roleid);
-      return role && role.rolename === "Admin";
+      return role && role.rolename === "Администратор";
     });
   };
 
   const isNurse = () => {
     return userRoles.some(userRole => {
       const role = allRoles.find(r => r.roleid === userRole.roleid);
-      return role && role.rolename === "Nurse";
+      return role && role.rolename === "Медсестра";
     });
   };
 
   const isDoctor = () => {
     return userRoles.some(userRole => {
       const role = allRoles.find(r => r.roleid === userRole.roleid);
-      return role && role.rolename === "Doctor";
+      return role && role.rolename === "Доктор";
     });
   };
 

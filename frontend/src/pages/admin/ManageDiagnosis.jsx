@@ -347,13 +347,12 @@ const ManageDiagnosis = () => {
     try {
       setMedicationsLoading(true);
       
-      // Удаляем связь на сервере
       await deleteDiagnosisMedication(diagnosisID, medicationID);
       
       // Обновляем данные с сервера
       await fetchMedications(diagnosisID);
       
-      setError(""); // Очищаем ошибки
+      setError(""); 
       
       // Если это было последнее лекарство, закрываем модальное окно
       if (medications.length <= 1) {

@@ -78,7 +78,7 @@ const ManageServices = () => {
     
     return userRoles.some(userRole => {
       const role = allRoles.find(r => r.roleid === userRole.roleid);
-      return role && role.rolename === "Admin";
+      return role && role.rolename === "Администратор";
     });
   };
 
