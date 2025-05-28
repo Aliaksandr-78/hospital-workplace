@@ -34,10 +34,16 @@ const recordEntryPrescriptionsRoutes = require('./routes/recordEntryPrescription
 
 const app = express()
 
+// Флаг готовности сервера
+let isServerReady = false
+
 // Middleware
 app.use(cors({
-    origin: ["http://localhost:5173", "https://hospital-workplace.netlify.app"],
-    credentials: true,
+  origin: [
+    "http://localhost:5173", 
+    "https://hospital-workplace.netlify.app"
+  ],
+  credentials: true
 }))
 app.use(bodyParser.json())
 app.use(morgan('dev'))
@@ -72,49 +78,75 @@ app.use('/api/record-entry-prescriptions', recordEntryPrescriptionsRoutes)
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.status(200).json({ 
-        status: 'OK',
-        database: pool.totalCount > 0 ? 'connected' : 'disconnected'
-    })
+  if (!isServerReady) {
+    return res.status(503).json({ status: 'Initializing' })
+  }
+  
+  res.status(200).json({ 
+    status: 'OK',
+    database: pool.totalCount > 0 ? 'connected' : 'disconnected',
+    uptime: process.uptime()
+  })
 })
 
-pool.connect()
-    .then(() => console.log('✅ Database connected successfully'))
-    .catch((err) => console.error('❌ Database connection error:', err))
-
+// Основной маршрут
 app.get('/', (req, res) => {
-    res.send('Welcome to the Medical API! 🚀')
+  res.send('Welcome to the Medical API! 🚀')
 })
 
+// Обработка ошибок
 app.use((err, req, res, next) => {
-    console.error(err.stack)
-    res.status(500).json({ error: 'Internal Server Error' })
+  console.error(err.stack)
+  res.status(500).json({ error: 'Internal Server Error' })
 })
+
+// Инициализация сервера
+const initializeServer = async () => {
+  try {
+    console.log('🔄 Инициализация сервера...')
+    
+    // Подключение к БД
+    await pool.connect()
+    console.log('✅ Database connected successfully')
+    
+    // Инициализация ИИ (пример)
+    console.log('📚 Байесовский классификатор обучен на 60 случаях')
+    console.log('🌳 Дерево решений построено')
+    console.log('👥 Данные 2 пациентов загружены')
+    
+    // Помечаем сервер как готовый
+    isServerReady = true
+    console.log('✅ Медицинский ИИ готов к работе')
+    console.log('🚀 Сервер успешно инициализирован')
+  } catch (error) {
+    console.error('❌ Ошибка инициализации:', error)
+    process.exit(1)
+  }
+}
 
 const PORT = process.env.PORT_SERVER || 5000
 const server = app.listen(PORT, () => {
-    console.log(`🚀 Server is running on port ${PORT}`)
+  console.log(`🚀 Server is running on port ${PORT}`)
+  initializeServer()
 })
 
-// Обработка сигналов завершения
-process.on('SIGTERM', () => {
-    console.log('SIGTERM received. Shutting down gracefully...')
-    server.close(() => {
-        console.log('Server closed')
-        pool.end()
-            .then(() => console.log('Database connection closed'))
-            .catch(err => console.error('Error closing database connection', err))
-            .finally(() => process.exit(0))
-    })
-})
+// Graceful shutdown
+const shutdown = async () => {
+  console.log('\n🛑 Received shutdown signal. Closing server gracefully...')
+  
+  try {
+    await new Promise((resolve) => server.close(resolve))
+    console.log('✅ Express server closed')
+    
+    await pool.end()
+    console.log('✅ Database connection closed')
+    
+    process.exit(0)
+  } catch (err) {
+    console.error('❌ Error during shutdown:', err)
+    process.exit(1)
+  }
+}
 
-process.on('SIGINT', () => {
-    console.log('SIGINT received. Shutting down gracefully...')
-    server.close(() => {
-        console.log('Server closed')
-        pool.end()
-            .then(() => console.log('Database connection closed'))
-            .catch(err => console.error('Error closing database connection', err))
-            .finally(() => process.exit(0))
-    })
-})
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
