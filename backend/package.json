@@ -9,7 +9,7 @@
     "build": "echo 'Build complete'",
     "dev": "nodemon server.js",
     "clean-install": "rm -rf node_modules && npm install",
-    "postinstall": "npm rebuild bcrypt --update-binary",
+    "postinstall": "npm rebuild bcrypt --update-binary"
   },
   "keywords": [],
   "author": "",
