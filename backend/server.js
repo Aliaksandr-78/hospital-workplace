@@ -37,7 +37,7 @@ const app = express()
 // Middleware
 app.use(cors({
     origin: ["http://localhost:5173", "https://hospital-workplace.netlify.app"],
-    credentials: true, // Разрешить запросы с учётными данными
+    credentials: true,
 }))
 app.use(bodyParser.json())
 app.use(morgan('dev'))
@@ -70,6 +70,14 @@ app.use('/api/record-entry-prescriptions', recordEntryPrescriptionsRoutes)
 
 
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'OK',
+        database: pool.totalCount > 0 ? 'connected' : 'disconnected'
+    })
+})
+
 pool.connect()
     .then(() => console.log('✅ Database connected successfully'))
     .catch((err) => console.error('❌ Database connection error:', err))
@@ -84,6 +92,29 @@ app.use((err, req, res, next) => {
 })
 
 const PORT = process.env.PORT_SERVER || 5000
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`)
+})
+
+// Обработка сигналов завершения
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received. Shutting down gracefully...')
+    server.close(() => {
+        console.log('Server closed')
+        pool.end()
+            .then(() => console.log('Database connection closed'))
+            .catch(err => console.error('Error closing database connection', err))
+            .finally(() => process.exit(0))
+    })
+})
+
+process.on('SIGINT', () => {
+    console.log('SIGINT received. Shutting down gracefully...')
+    server.close(() => {
+        console.log('Server closed')
+        pool.end()
+            .then(() => console.log('Database connection closed'))
+            .catch(err => console.error('Error closing database connection', err))
+            .finally(() => process.exit(0))
+    })
 })
